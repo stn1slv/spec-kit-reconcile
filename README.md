@@ -4,7 +4,7 @@ A Spec-Kit extension to reconcile documentation with implementation drift.
 
 ## Overview
 
-The `speckit.reconcile` command is a **Post-Implementation Gap Closer**. It analyzes a natural-language gap report, resolves paths, surgically updates the feature's `spec.md` and `plan.md`, and appends actionable remediation tasks to `tasks.md`.
+The `speckit.reconcile.run` command is a **Post-Implementation Gap Closer**. It analyzes a natural-language gap report, resolves paths, surgically updates the feature's `spec.md` and `plan.md`, and appends actionable remediation tasks to `tasks.md`.
 
 This extension acts as the "Inner Loop" of the Double-Loop Parity framework: it ensures that during the PR phase, the *feature artifacts* are continuously aligned with the shipped code.
 
@@ -30,7 +30,7 @@ speckit ext install https://github.com/stn1slv/spec-kit-reconcile/archive/refs/t
 Provide a plain-text gap report to the command describing the implementation drift:
 
 ```bash
-/speckit.reconcile "Backend exists, but React screen is unreachable; need sidebar link and route"
+/speckit.reconcile.run "Backend exists, but React screen is unreachable; need sidebar link and route"
 ```
 
 You can optionally restrict the scope of the updates:
@@ -41,7 +41,7 @@ You can optionally restrict the scope of the updates:
 ## Workflow
 
 1.  **Parse the Gap Report** to determine what drift occurred.
-2.  **Run `check-prerequisites.sh`** to identify target feature artifacts.
+2.  **Run the core Spec-Kit `check-prerequisites.sh` script** to identify target feature artifacts.
 3.  **Normalize Gaps** into categories (Wiring & Navigation, Contracts, Test Coverage, etc.).
 4.  **Surgically Edit** the feature's specific `spec.md`, `plan.md`, and `tasks.md`.
 5.  **Output a Sync Impact Report** detailing the created tasks and next steps (e.g., routing to `/speckit.implement`).
