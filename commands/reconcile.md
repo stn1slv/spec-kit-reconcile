@@ -26,7 +26,7 @@ If `$ARGUMENTS` contains any of these flags, respect them (optional):
 - `--plan-only` — update only `plan.md`
 - `--tasks-only` — update only `tasks.md`
 
-If `$ARGUMENTS` is empty, output `ERROR: No gap report provided. Usage: /speckit.reconcile [gap report text]` and stop.
+If `$ARGUMENTS` is empty, output `ERROR: No gap report provided. Usage: /speckit.reconcile.run [gap report text]` and stop.
 
 ---
 
