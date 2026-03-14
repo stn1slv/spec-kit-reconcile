@@ -1,0 +1,12 @@
+schema_version: "1.0"
+extension:
+  id: "reconcile"
+  name: "Spec-Kit Reconcile"
+  version: "1.0.0"
+  description: "Reconcile implementation drift by surgically updating the feature's own spec, plan, and tasks based on a gap report."
+requires:
+  speckit_version: ">=0.1.0"
+provides:
+  commands:
+    - name: "speckit.reconcile"
+      file: "commands/reconcile.md"
