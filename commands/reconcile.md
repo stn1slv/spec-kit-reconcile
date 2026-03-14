@@ -1,5 +1,8 @@
 ---
 description: "Reconcile implementation drift by updating the feature's own spec, plan, and tasks"
+scripts:
+  sh: ../../scripts/bash/check-prerequisites.sh --json --paths-only --include-tasks
+  ps: ../../scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly -IncludeTasks
 ---
 Act as the **Chief Software Architect** and **Implementation Auditor**.
 A feature implementation has landed, but "artifact drift" has been discovered (e.g., missing routes, updated behavior, or unlinked UI). Your goal is to **reconcile** this drift by surgically amending the feature's own specification, plan, and task artifacts.
@@ -31,7 +34,7 @@ If `$ARGUMENTS` is empty, output `ERROR: No gap report provided. Usage: /speckit
 
 ### 0.1 Resolve Paths
 
-Use `scripts/check-prerequisites.sh` to identify the active feature directory and its artifacts. This script is mandatory for path discovery. If the script is missing, stop and inform the user.
+Run `{SCRIPT}` to identify the active feature directory and its artifacts. This script is mandatory for path discovery. If the script is missing, stop and inform the user.
 
 Derive absolute paths for:
 - `FEATURE_DIR` (e.g., `specs/###-feature-name/`)
