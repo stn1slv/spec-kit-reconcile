@@ -29,19 +29,15 @@ specify extension add reconcile --from https://github.com/stn1slv/spec-kit-recon
 
 ## Usage
 
-Provide a plain-text gap report to the command describing the implementation drift:
+Name the feature, then describe the drift in plain text:
 
 ```bash
-/speckit.reconcile.run "Backend exists, but React screen is unreachable; need sidebar link and route"
+/speckit.reconcile.run specs/007-invoice-settings "Backend exists, but React screen is unreachable; need sidebar link and route"
 ```
 
-By default the command reconciles the feature you worked on last. Pass a feature path first to reconcile a different one:
+The feature path is required. This command rewrites `spec.md`, `plan.md` and `tasks.md` in place, so it never infers which feature you meant.
 
-```bash
-/speckit.reconcile.run specs/007-invoice-settings "The /api/v1/settings endpoint now requires an org_id header"
-```
-
-Re-running the same gap report is safe: it updates what it already wrote instead of appending a second set of tasks.
+Re-running the same gap report is safe: it updates what it already wrote instead of appending a second set of tasks, and it never edits a task `/speckit.implement` has already marked complete.
 
 You can optionally restrict the scope of the updates:
 - `--spec-only` — update only `spec.md`

@@ -21,18 +21,20 @@ The input `$ARGUMENTS` is a **Gap Report** — a natural language description of
 - "Backend + tests for Invoice Settings exist; React screen scaffolded. Users can't navigate to it. Need sidebar link + route."
 - "The /api/v1/settings endpoint now requires an 'org_id' header not in the original plan."
 
-**Optional leading feature path.** If the input **begins** with a token of the form `specs/###-feature-name`, that token names the feature to reconcile and the remainder is the gap report. Use this when the feature you are reconciling is not the one you worked on last (see 0.1).
+**Grammar** — first token, then prose, then flags:
 
-**Optional scope modifiers**, recognised only as **whole tokens** at the very end of the input:
-- `--spec-only` — update only `spec.md`
-- `--plan-only` — update only `plan.md`
-- `--tasks-only` — update only `tasks.md`
-
-Match these as complete trailing tokens, never as text inside the gap report. A report that discusses a command line, for example `"running myapp --tasks-only crashes"`, is describing a symptom and must **not** activate the flag. When in doubt, treat the text as part of the gap report and say so in the Sync Impact Report.
+1. **First token: the feature directory, required.** A path of the form `specs/###-feature-name`, naming the feature to reconcile. It must resolve to **exactly one existing directory**, and must name the directory itself, not a file inside it. If it matches nothing, matches several, or carries extra path segments, output `ERROR: '[token]' does not resolve to exactly one feature directory` and stop. Requiring it means this command never guesses which feature it is about to rewrite.
+2. **Middle: the gap report**, free text.
+3. **Trailing tokens: scope modifiers**, optional, recognised only as whole tokens at the very end:
+   - `--spec-only` — update only `spec.md`
+   - `--plan-only` — update only `plan.md`
+   - `--tasks-only` — update only `tasks.md`
 
 If **several** modifiers are supplied, the scope is their **union**: `--spec-only --tasks-only` updates both `spec.md` and `tasks.md` and nothing else. "Only" bounds the whole set, not each flag individually.
 
-If `$ARGUMENTS` is empty, or contains nothing beyond a feature path and modifiers, output `ERROR: No gap report provided. Usage: /speckit.reconcile.run [specs/###-feature-name] [gap report text] [--scope-modifier]` and stop.
+A modifier counts only as a trailing token, never as text inside the report. If the report's own last words are a flag-like token, prefer the scoping reading and state the interpretation under `## Scoping`, so a user who meant it as prose can see it and re-quote.
+
+If `$ARGUMENTS` is empty, or holds nothing beyond a feature path and modifiers, output `ERROR: No gap report provided. Usage: /speckit.reconcile.run specs/###-feature-name [gap report text] [--scope-modifier]` and stop.
 
 ---
 
@@ -40,12 +42,10 @@ If `$ARGUMENTS` is empty, or contains nothing beyond a feature path and modifier
 
 ### 0.1 Resolve Paths
 
-Run `{SCRIPT}` to resolve the repository root and the feature paths.
+Run `{SCRIPT}` for `REPO_ROOT`. The feature comes from the argument, never from the script, so the script's own feature resolution is unused here.
 
 - **If the script is missing**, stop and inform the user. It ships with Spec-Kit, so its absence means this is not an initialised Spec-Kit project.
-- **If the script runs but exits non-zero** — commonly `Feature directory not found` when no `.specify/feature.json` exists — this is fatal **only** when the input did not supply a feature path. When it did, resolve `REPO_ROOT` by walking up from that path to the nearest ancestor containing `.specify/`, and continue.
-
-**Which feature is reconciled.** The script resolves the feature from the project's own state (`SPECIFY_FEATURE_DIRECTORY`, then `.specify/feature.json`), which is whichever feature was worked on last. That is usually the right one for this command, since reconciliation happens during the PR phase. But it is not always: **a feature path supplied in the input always wins.** If the two disagree, use the argument and report both in the Sync Impact Report, so a user pointed at the wrong feature can see it before reviewing the diff.
+- **If the script runs but exits non-zero**, continue: resolve `REPO_ROOT` by walking up from the supplied feature path to the nearest ancestor containing `.specify/`, and note the fallback in the report. Stop only if no such ancestor exists.
 
 Derive absolute paths for:
 - `FEATURE_DIR` (e.g., `specs/###-feature-name/`)
@@ -57,7 +57,7 @@ Derive absolute paths for:
 > ⚠️ Missing required files in `FEATURE_DIR`. Expected: spec.md, plan.md.
 > Run `/speckit.specify` and `/speckit.plan` first.
 
-**Do not create `TASKS_FILE` here.** Step 0 is a gate and must not write anything: Step 2 may pause for answers and Step 3 promises the user a preview before any edit. 4.3 creates it, if and only if it is in scope and there are tasks to write.
+**Step 0 is a gate and writes nothing**, including `TASKS_FILE`. 4.3 creates that file when it needs it.
 
 ### 0.2 Load Context
 
@@ -135,16 +135,20 @@ Before making any edits, produce a brief impact map:
 
 **Scope**: skip any artifact excluded by a scope modifier, and name it in the Sync Impact Report. Out of scope means **not written**, never not read. This rule governs 4.1, 4.2 and 4.3 alike; those sections do not repeat it.
 
-**Idempotency**: this command is safe to re-run, and re-running is expected, because a gap report is prose the user will often refine and submit again. Before writing, check whether this same gap report has already been applied:
+**Idempotency**: this command is safe to re-run, and re-running is expected, because a gap report is prose the user will refine and submit again.
 
-- `tasks.md` — tasks carry a `[Sync: ...]` tag (see 4.3). If tasks with this report's tag are already present, update them in place instead of appending a second set.
-- `spec.md` and `plan.md` — if a `Revision: Implementation Sync` note with the same date and the same reason is already present, amend that note rather than adding another, and do not re-apply an amendment the file already carries.
+**The key is a slug**, a short hyphenated name for the drift being fixed (`settings-nav-link`). Derive it from the gap report, but first read the `[Sync: ...]` tags already in `TASKS_FILE` and the revision notes already in `spec.md` and `plan.md`: **if one of them names the same drift, reuse that slug rather than minting a new one.** A refined report describing the same problem must produce the same key, otherwise the whole mechanism misses in the one case it exists for. The date is metadata, never part of the match.
 
-A re-run that finds everything already applied is a valid outcome. Report it as such and change nothing.
+When the slug is already present, update what that earlier run wrote rather than appending beside it. Two limits on "update":
+
+- **Never edit a task marked `[X]` or `[x]`.** `/speckit.implement` marks completed work that way, and rewriting a finished task silently changes the record of what was done. If the refined report changes such a task, leave it and append a new one describing the remaining work.
+- Never delete a task an earlier run created. If the refined report drops it, leave it in place and say so in the report; removing work items is the user's call.
+
+A re-run that finds everything already applied is a valid outcome. Report it and change nothing.
 
 ### 4.1 Update Specification (`spec.md`)
 
-**Follow the structure the spec already uses.** The canonical `spec-template.md` layout is `## User Scenarios & Testing` containing `### User Story N`, each with a bold `**Acceptance Scenarios**` list in Given/When/Then form, then `### Edge Cases`, `## Requirements` with `### Functional Requirements` (`FR-001`, ...), and `## Success Criteria` with `### Measurable Outcomes` (`SC-001`, ...). Detect the project's actual section names and ID convention before editing and follow what you find, rather than assuming these names.
+**Detect the spec's actual section names and ID convention before editing, and follow what you find.** The sections below use the canonical names; a project may use its own.
 
 **Touch only the sections the gap report actually implicates.** This is a surgical amendment, not a spec rewrite. Every section below is in scope when the drift reaches it, and none of them is edited when it does not.
 
@@ -155,9 +159,9 @@ A re-run that finds everything already applied is a valid outcome. Report it as 
 - **Success Criteria**: Amend an `SC-XXX` whose target the shipped behaviour changed, or add one continuing from the highest existing ID.
 - **Assumptions**: Correct an assumption the implementation invalidated, and add one the implementation now depends on.
 - **User Scenarios**: Add a missing user story only when the drift is not covered by any existing one.
-- **Revision Note**: Add a block at the bottom:
+- **Revision Note**: Add a block at the bottom, **unless one carrying this run's slug is already there**, in which case amend it:
   ```markdown
-  ### Revision: Implementation Sync [YYYY-MM-DD]
+  ### Revision: Implementation Sync [YYYY-MM-DD] [Sync: slug]
   - Reason: [Summary of drift reconciled]
   ```
 
@@ -168,24 +172,22 @@ A re-run that finds everything already applied is a valid outcome. Report it as 
 - **Revision Note**: Append a revision note (same format as spec.md) if plan sections were modified.
 
 ### 4.3 Update Tasks (`tasks.md`)
-This is the most critical step. Create remediation tasks to close the drift.
+Create remediation tasks to close the drift.
 
-If `TASKS_FILE` does not exist, create it now with a `## Remediation: Gaps` heading. Create it only at this point, and only if this step will actually write tasks into it.
+If `TASKS_FILE` does not exist, create it now with a `## Remediation: Gaps` heading, and number from `T001`. Create it only at this point, and only if this step will actually write tasks into it.
 
 **Task Formatting**:
 `- [ ] T{NNN} [{story}] {action verb} {what} in {exact/file/path.ext} [Sync: YYYY-MM-DD slug]`
 
-This matches the core task format from `tasks-template.md`, which is `[ID] [P?] [Story] Description`.
+Use the user story tag the task belongs to; omit it for tasks landing in `## Remediation: Gaps`, which belong to no story. The `[Sync: ...]` tag is always appended, carrying today's date and this run's slug (for example `[Sync: 2026-08-09 settings-nav-link]`). The slug is the re-run key, matched as described in Step 4.
 
-The `[Sync: ...]` tag is always appended, and carries today's date plus a short hyphenated slug of this gap report (for example `[Sync: 2026-08-09 settings-nav-link]`). The slug is what makes the tag a re-run key: use the same slug for the same report, so the idempotency rule above can recognise tasks it already wrote. A constant tag would make every run look new.
-
-**Do not emit the `[P]` marker.** In Spec-Kit, `[P]` means "can run in parallel: different files, no dependencies", and `/speckit.implement` reads it to decide which tasks to run together. It is not a priority or urgency flag. A gap report describes symptoms, not the file-level independence of the fixes, so this command cannot establish that a remediation task is safe to parallelize. Omitting the marker is always correct: the task then runs sequentially. If you need to signal urgency, say so in the task description or order the tasks, never with `[P]`.
+**Do not emit the `[P]` marker.** In Spec-Kit it means "can run in parallel: different files, no dependencies", and `/speckit.implement` reads it to decide what to run together. A gap report cannot establish that a remediation is independent of the others, so omitting it is always correct: the task then runs sequentially.
 
 **Rules for Tasks**:
 1. **Increment IDs**: Find the highest `T###` in `tasks.md`. Start new tasks from `max + 1`. Never reuse or renumber.
 2. **Phase Placement**: Place new tasks under the **existing** phase heading that covers the affected user story. Core `tasks.md` files write these as `## Phase N: User Story N - [Title] (Priority: PN)`. Match the heading that is already in the file; never invent a new one from the `[USn]` task tag, which is an inline marker and not a heading. If no existing phase fits, create a `## Remediation: Gaps` section at the end.
 3. **Exact Paths**: Every task MUST include an exact file path where the change is needed.
-4. **Mandatory Integration Test**: If you identified a **Wiring & Navigation** gap, you MUST add a task for an Integration Test to verify it.
+4. **Mandatory Integration Test**: If you identified a **Wiring & Navigation** gap, you MUST add a task for an Integration Test to verify it — unless `tasks.md` is out of scope, in which case write nothing and name the omitted test under `## Scoping`.
 
 ---
 
@@ -203,11 +205,8 @@ Output the final report:
 | `/absolute/path/to/plan.md` | Updated Routing/Contracts |
 | `/absolute/path/to/tasks.md` | Added [N] remediation tasks |
 
-## Feature Resolution
-[Which `FEATURE_DIR` was reconciled and where it came from: the supplied path, or `{SCRIPT}`. Note it when the two disagreed, or when the script failed and the path came from the argument.]
-
 ## Scoping
-[Which artifacts were updated, and which were skipped due to scope modifiers. Say so explicitly if text resembling a modifier appeared inside the gap report and was treated as prose.]
+[Which artifacts were updated, and which were skipped due to scope modifiers, including any mandatory integration test that was therefore not written. State the interpretation if the report's final words were flag-like. Note it if the path-resolution script failed and `REPO_ROOT` was derived from the supplied feature path.]
 
 ## New Remediation Tasks
 [List the new tasks added, e.g.]
@@ -231,11 +230,13 @@ Output the final report:
 ---
 
 ## Done Criteria
-- Gap report parsed and categorized, and the feature it applies to resolved and reported.
+Each criterion below applies only to artifacts in scope; an artifact a modifier excluded is named in the report instead.
+
+- Gap report parsed and categorized against a feature directory that resolved to exactly one existing path.
 - Every spec section the drift reaches is amended, and no section it does not reach is touched.
 - `tasks.md` updated with incremented `T###` IDs, exact file paths, and no `[P]` marker.
-- Mandatory integration test task added for wiring gaps.
-- Revision note added to each artifact that was modified.
-- Nothing written for an artifact excluded by a scope modifier, and each exclusion named in the report.
+- Integration test task added for wiring gaps.
+- Revision note added to each modified `spec.md` / `plan.md`; for `tasks.md` the `[Sync: ...]` tag is the equivalent record.
+- No task marked `[X]` was edited, and no task from an earlier run was deleted.
 - Re-running the same gap report changes nothing further.
 - Sync Impact Report printed.

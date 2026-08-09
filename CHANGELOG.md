@@ -14,14 +14,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changed capability had nowhere to land. Functional Requirements, Edge Cases, Key Entities,
   Success Criteria and Assumptions are now all in scope, and only the sections the gap report
   actually reaches are touched.
-- Optional leading `specs/###-feature-name` argument, so you can reconcile a feature other than
-  the one you worked on last. The supplied path always wins over the script's resolution, and
-  the report says which was used.
 - Idempotency. Re-running the same gap report no longer appends a duplicate task set and a
-  second revision note. Tasks carry a `[Sync: YYYY-MM-DD slug]` tag that acts as the re-run key.
-- The Sync Impact Report gained `Feature Resolution` and `Scoping` sections, and recommends
-  re-running `/speckit.archive.run` when the reconciled feature has already been archived, since
-  those edits leave project memory stale.
+  second revision note. Tasks and revision notes carry a `[Sync: ... slug]` tag that acts as the
+  re-run key; the slug is reused when an existing tag names the same drift, so a refined report
+  still matches. A task `/speckit.implement` has marked `[X]` is never edited, and no task from
+  an earlier run is ever deleted.
+- The Sync Impact Report gained a `Scoping` section, and recommends re-running
+  `/speckit.archive.run` when the reconciled feature has already been archived, since these
+  edits leave project memory stale.
+
+### Changed
+
+- **Breaking:** the feature directory is now a required first argument
+  (`/speckit.reconcile.run specs/###-feature-name "gap report"`). It previously came from
+  `check-prerequisites.sh`, which resolves whichever feature was worked on last. Since this
+  command rewrites three files in place, it no longer infers which feature you meant. The path
+  must resolve to exactly one existing directory.
 
 ### Fixed
 
