@@ -118,7 +118,7 @@ Use this format and **wait for answers**:
 
 ## Step 3: Impact Map
 
-Before making any edits, produce a brief impact map. It is the user's preview of this run, so it must promise only what the run will actually do: mark any artifact a scope modifier excluded as `Skipped (out of scope)`, and any artifact an earlier run already reconciled under this slug as `No change (already applied)`.
+Before making any edits, produce a brief impact map. It is the user's preview of this run, so it must promise only what the run will actually do: mark any artifact a scope modifier excluded as `Skipped (out of scope)`, and any artifact an earlier run already reconciled under this slug as `No change (already applied)`. Derive the slug per Step 4 before producing this map.
 
 ```markdown
 ### Sync Impact Map
@@ -166,10 +166,13 @@ A re-run that finds everything already applied is a valid outcome. Report it and
   ```
 
 ### 4.2 Update Plan (`plan.md`)
+
+**Touch only the sections the gap report actually implicates**, as in 4.1. A drift that reaches no plan section leaves this file alone entirely.
+
 - **Routing & Navigation**: Add any missing routes, endpoints, or UI wiring details.
 - **Integration Contracts**: Update API schemas, request/response headers, or payloads.
 - **Testing Strategy**: Ensure the strategy covers the newly identified gaps.
-- **Revision Note**: Add or amend a revision note if plan sections were modified, using the same format and the same slug rule as 4.1.
+- **Revision Note**: Add or amend a revision note if one of the sections above was modified, using the same format and the same slug **and date** rules as 4.1.
 
 ### 4.3 Update Tasks (`tasks.md`)
 Create remediation tasks to close the drift.
@@ -179,9 +182,9 @@ If `TASKS_FILE` does not exist, create it now with a `## Remediation: Gaps` head
 **Task Formatting**:
 `- [ ] T{NNN} [{story}] {action verb} {what} in {exact/file/path.ext} [Sync: slug]`
 
-Use the user story tag the task belongs to; omit it for tasks landing in `## Remediation: Gaps`, which belong to no story. The `[Sync: ...]` tag is always appended and holds this run's slug and nothing else (for example `[Sync: settings-nav-link]`), so the same shape appears in every artifact and the key is everything after `Sync: `. It is the re-run key, matched as described in Step 4.
+Use the user story tag the task belongs to; omit it for tasks landing in `## Remediation: Gaps`, which belong to no story. The `[Sync: ...]` tag is always appended and holds this run's slug and nothing else (for example `[Sync: settings-nav-link]`), so the same shape appears in every artifact and the key is everything after `Sync: `.
 
-**Do not emit the `[P]` marker.** In Spec-Kit it means "can run in parallel: different files, no dependencies", and `/speckit.implement` reads it to decide what to run together. A gap report cannot establish that a remediation is independent of the others, so omitting it is always correct: the task then runs sequentially.
+**Do not emit the `[P]` marker, and never strip it from a task you did not write.** In Spec-Kit it means "can run in parallel: different files, no dependencies", and `/speckit.implement` reads it to decide what to run together. A gap report cannot establish that a remediation is independent of the others, so omitting it on new tasks is always correct: they then run sequentially. Tasks written by `/speckit.tasks` carry it legitimately, and removing it would change how they execute.
 
 **Rules for Tasks**:
 1. **Increment IDs**: Find the highest `T###` in `tasks.md`. Start new tasks from `max + 1`. Never reuse or renumber.
@@ -207,7 +210,7 @@ Output the final report:
 | `/absolute/path/to/tasks.md` | Added [N] remediation tasks |
 
 ## Scoping
-[Which artifacts were updated, and which were skipped due to scope modifiers, including any mandatory integration test that was therefore not written. State the interpretation if the report's final words were flag-like. Note it if the path-resolution script failed and `REPO_ROOT` was derived from the supplied feature path.]
+[Which artifacts were skipped due to scope modifiers, including any mandatory integration test that was therefore not written, and which were left unchanged because an earlier run under this slug had already applied them. State the interpretation if the report's final words were flag-like. Note it if the path-resolution script failed and `REPO_ROOT` was derived from the supplied feature path.]
 
 ## New Remediation Tasks
 [List the new tasks added, e.g.]

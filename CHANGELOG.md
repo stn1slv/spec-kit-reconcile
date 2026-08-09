@@ -42,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   left a stray file behind. It is now created in 4.3, only when in scope and only when there are
   tasks to write.
 - A non-zero exit from `check-prerequisites.sh` is handled instead of being undefined.
-
 - Remediation tasks are no longer marked `[P]`. The command described `[P]` as a priority flag
   for blocking or high-urgency work, but in Spec-Kit `[P]` means "can run in parallel: different
   files, no dependencies", and `/speckit.implement` reads it to decide which tasks to run
