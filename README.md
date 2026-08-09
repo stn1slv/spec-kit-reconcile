@@ -21,9 +21,9 @@ This extension acts as the "Inner Loop" of the Double-Loop Parity framework: it 
 You can install this extension via the Spec-Kit CLI:
 
 ```bash
-specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.0.0.zip
+specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.0.1.zip
 ```
-*(Note: Replace `v1.0.0` with the latest release version)*
+*(Note: Replace `v1.0.1` with the latest release version)*
 
 ## Usage
 

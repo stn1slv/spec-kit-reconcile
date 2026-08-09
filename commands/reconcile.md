@@ -1,8 +1,8 @@
 ---
 description: "Reconcile implementation drift by updating the feature's own spec, plan, and tasks"
 scripts:
-  sh: ../../scripts/bash/check-prerequisites.sh --json --paths-only --include-tasks
-  ps: ../../scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly -IncludeTasks
+  sh: ../../scripts/bash/check-prerequisites.sh --json --paths-only
+  ps: ../../scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly
 ---
 Act as the **Chief Software Architect** and **Implementation Auditor**.
 A feature implementation has landed, but "artifact drift" has been discovered (e.g., missing routes, updated behavior, or unlinked UI). Your goal is to **reconcile** this drift by surgically amending the feature's own specification, plan, and task artifacts.
@@ -68,7 +68,7 @@ Analyze the user's **Gap Report** and normalize it into structured remediation i
 |----------|----------------|--------|
 | **Wiring & Navigation** | Missing routes, menu items, sidebar links | Add to `plan.md`, create tasks in `tasks.md` |
 | **Contracts** | API field mismatches, missing headers | Update `plan.md` contracts, create tasks |
-| **Acceptance Criteria** | Implementation behaves differently than planned | Update `spec.md` scenarios/criteria |
+| **Behavior** | Implementation behaves differently than planned | Update the relevant Acceptance Scenario in `spec.md` |
 | **Test Coverage** | New wiring/navigation without verification | Add task for Integration Test |
 | **Logic/UX** | Success toasts missing, error handling gaps | Add tasks for implementation |
 
@@ -106,7 +106,7 @@ Before making any edits, produce a brief impact map:
 ### Sync Impact Map
 | Artifact | Changes | Tasks Generated |
 |----------|---------|-----------------|
-| `spec.md` | Update AC-04, add User Scenario "Error Handling" | None |
+| `spec.md` | Amend Acceptance Scenario under User Story 2, add Edge Case | None |
 | `plan.md` | Add Route `/settings`, update API contract | None |
 | `tasks.md` | Append remediation tasks | T045, T046, T047 |
 ```
@@ -118,8 +118,11 @@ Before making any edits, produce a brief impact map:
 **Constraint**: Operate strictly in place. Do not create branches, switch branches, or run feature-creation scripts. All edits target existing files in `FEATURE_DIR`.
 
 ### 4.1 Update Specification (`spec.md`)
-- **Acceptance Criteria**: Amend existing criteria or add new ones to reflect the shipped reality.
-- **User Scenarios**: Add missing scenarios discovered during implementation (e.g., specific edge cases).
+
+**Follow the structure the spec already uses.** The canonical `spec-template.md` layout is `## User Scenarios & Testing` containing `### User Story N`, each with a bold `**Acceptance Scenarios**` list in Given/When/Then form, then `### Edge Cases`, `## Requirements` with `### Functional Requirements` (`FR-001`, ...), and `## Success Criteria` with `### Measurable Outcomes` (`SC-001`, ...). Detect the project's actual section names and ID convention before editing and follow what you find, rather than assuming these names.
+
+- **Acceptance Scenarios**: Amend an existing scenario, or add one, under the relevant `### User Story N`. Keep the Given/When/Then form the file already uses.
+- **User Scenarios**: Add a missing user story only when the drift is not covered by any existing one.
 - **Revision Note**: Add a block at the bottom:
   ```markdown
   ### Revision: Implementation Sync [YYYY-MM-DD]
@@ -136,13 +139,15 @@ Before making any edits, produce a brief impact map:
 This is the most critical step. Create remediation tasks to close the drift.
 
 **Task Formatting**:
-`- [ ] T{NNN} [P] [{story}] {action verb} {what} in {exact/file/path.ext} [Sync: Gap Report]`
+`- [ ] T{NNN} [{story}] {action verb} {what} in {exact/file/path.ext} [Sync: Gap Report]`
 
-Where `[P]` is an optional priority flag — include it only for tasks that are blocking or high-urgency. Omit for normal priority. The `[Sync: Gap Report]` tag is always appended for traceability.
+This matches the core task format from `tasks-template.md`, which is `[ID] [P?] [Story] Description`. The `[Sync: Gap Report]` tag is always appended for traceability.
+
+**Do not emit the `[P]` marker.** In Spec-Kit, `[P]` means "can run in parallel: different files, no dependencies", and `/speckit.implement` reads it to decide which tasks to run together. It is not a priority or urgency flag. A gap report describes symptoms, not the file-level independence of the fixes, so this command cannot establish that a remediation task is safe to parallelize. Omitting the marker is always correct: the task then runs sequentially. If you need to signal urgency, say so in the task description or order the tasks, never with `[P]`.
 
 **Rules for Tasks**:
 1. **Increment IDs**: Find the highest `T###` in `tasks.md`. Start new tasks from `max + 1`. Never reuse or renumber.
-2. **Phase Placement**: Place new tasks under the relevant User Story phase (e.g., `## [US2] Settings Dashboard`). If no phase fits, create a `## Remediation: Gaps` section at the end.
+2. **Phase Placement**: Place new tasks under the **existing** phase heading that covers the affected user story. Core `tasks.md` files write these as `## Phase N: User Story N - [Title] (Priority: PN)`. Match the heading that is already in the file; never invent a new one from the `[USn]` task tag, which is an inline marker and not a heading. If no existing phase fits, create a `## Remediation: Gaps` section at the end.
 3. **Exact Paths**: Every task MUST include an exact file path where the change is needed.
 4. **Mandatory Integration Test**: If you identified a **Wiring & Navigation** gap, you MUST add a task for an Integration Test to verify it.
 
