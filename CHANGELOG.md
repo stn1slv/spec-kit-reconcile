@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Success Criteria and Assumptions are now all in scope, and only the sections the gap report
   actually reaches are touched.
 - Idempotency. Re-running the same gap report no longer appends a duplicate task set and a
-  second revision note. Tasks and revision notes carry a `[Sync: ... slug]` tag that acts as the
+  second revision note. Tasks and revision notes carry a `[Sync: slug]` tag that acts as the
   re-run key; the slug is reused when an existing tag names the same drift, so a refined report
   still matches. A task `/speckit.implement` has marked `[X]` is never edited, and no task from
   an earlier run is ever deleted.

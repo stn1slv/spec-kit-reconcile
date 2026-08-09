@@ -23,14 +23,14 @@ $ARGUMENTS
 
 **Grammar** — first token, then prose, then flags:
 
-1. **First token: the feature directory, required.** A path of the form `specs/###-feature-name`, naming the feature to reconcile. It must resolve to **exactly one existing directory**, and must name the directory itself, not a file inside it. If it matches nothing, matches several, or carries extra path segments, output `ERROR: '[token]' does not resolve to exactly one feature directory` and stop.
+1. **First token: the feature directory, required.** A path of the form `specs/###-feature-name`, naming the feature to reconcile. It must be an existing directory, given in full, not a file inside it and not a numeric prefix. If it does not exist, or names a file, output `ERROR: '[token]' is not an existing feature directory` and stop.
 2. **Middle: the gap report**, free text.
 3. **Trailing tokens: scope modifiers**, optional, recognised only as whole tokens at the very end:
    - `--spec-only` — update only `spec.md`
    - `--plan-only` — update only `plan.md`
    - `--tasks-only` — update only `tasks.md`
 
-If **several** modifiers are supplied, the scope is their **union**: `--spec-only --tasks-only` updates both `spec.md` and `tasks.md` and nothing else. "Only" bounds the whole set, not each flag individually.
+If **several** modifiers are supplied, the scope is their **union**: `--spec-only --tasks-only` updates both `spec.md` and `tasks.md` and nothing else.
 
 A modifier counts only as a trailing token, never as text inside the report. If the report's own last words are a flag-like token, prefer the scoping reading and state the interpretation under `## Scoping`, so a user who meant it as prose can see it and re-quote.
 
@@ -77,16 +77,18 @@ Also read `.specify/memory/constitution.md` if it exists. If found, extract MUST
 
 Analyze the user's **Gap Report** and normalize it into structured remediation items:
 
-| Category | Typical Issues | Action |
-|----------|----------------|--------|
-| **Wiring & Navigation** | Missing routes, menu items, sidebar links | Add to `plan.md`, create tasks in `tasks.md` |
-| **Contracts** | API field mismatches, missing headers | Update `plan.md` contracts, create tasks |
-| **Requirements** | Shipped code adds, drops or redefines a capability | Amend or add a Functional Requirement in `spec.md` |
-| **Behavior** | Implementation behaves differently than planned | Update the relevant Acceptance Scenario in `spec.md` |
-| **Data Model** | New or changed entity, field, or validation rule | Update Key Entities in `spec.md` and the data model in `plan.md` |
-| **Outcomes & Assumptions** | A measurable target or a stated assumption no longer holds | Update Success Criteria or Assumptions in `spec.md` |
-| **Test Coverage** | New wiring/navigation without verification | Add task for Integration Test |
-| **Logic/UX** | Success toasts missing, error handling gaps | Add tasks for implementation |
+Classify only; Step 4 owns which artifact each category is written to.
+
+| Category | Typical Issues |
+|----------|----------------|
+| **Wiring & Navigation** | Missing routes, menu items, sidebar links |
+| **Contracts** | API field mismatches, missing headers |
+| **Requirements** | Shipped code adds, drops or redefines a capability |
+| **Behavior** | Implementation behaves differently than planned |
+| **Data Model** | New or changed entity, field, or validation rule |
+| **Outcomes & Assumptions** | A measurable target or a stated assumption no longer holds |
+| **Test Coverage** | New wiring/navigation without verification |
+| **Logic/UX** | Success toasts missing, error handling gaps |
 
 For each normalized item, verify it does not conflict with any MUST-level constitution constraint loaded in Step 0.2. Flag any conflicts as CRITICAL and include them in Step 2 clarification.
 
@@ -116,7 +118,7 @@ Use this format and **wait for answers**:
 
 ## Step 3: Impact Map
 
-Before making any edits, produce a brief impact map. It is the user's preview of this run, so it must promise only what the run will actually do: mark any artifact a scope modifier excluded as `Skipped (out of scope)` rather than listing changes for it.
+Before making any edits, produce a brief impact map. It is the user's preview of this run, so it must promise only what the run will actually do: mark any artifact a scope modifier excluded as `Skipped (out of scope)`, and any artifact an earlier run already reconciled under this slug as `No change (already applied)`.
 
 ```markdown
 ### Sync Impact Map
@@ -133,11 +135,9 @@ Before making any edits, produce a brief impact map. It is the user's preview of
 
 **Constraint**: Operate strictly in place. Do not create branches, switch branches, or run feature-creation scripts. All edits target existing files in `FEATURE_DIR`.
 
-**Scope**: skip any artifact excluded by a scope modifier, and name it in the Sync Impact Report. Out of scope means **not written**, never not read. This rule governs 4.1, 4.2 and 4.3 alike; those sections do not repeat it.
+**Scope**: skip any artifact excluded by a scope modifier, and name it in the Sync Impact Report. Out of scope means **not written**, never not read. This rule governs 4.1, 4.2 and 4.3 alike.
 
-**Idempotency**: this command is safe to re-run.
-
-**The key is a slug**, a short hyphenated name for the drift being fixed (`settings-nav-link`). Derive it from the gap report, but first read the `[Sync: ...]` tags already in `TASKS_FILE` and the revision notes already in `spec.md` and `plan.md`: **if one of them names the same drift, reuse that slug rather than minting a new one.** A refined report describing the same problem must produce the same key, otherwise the whole mechanism misses in the one case it exists for. The date is metadata, never part of the match.
+**Idempotency — the key is a slug**, a short hyphenated name for the drift being fixed (`settings-nav-link`). Derive it from the gap report, but first read the `[Sync: ...]` tags already in `TASKS_FILE` and the revision notes already in `spec.md` and `plan.md`: **if one of them names the same drift, reuse that slug rather than minting a new one.** A refined report describing the same problem must produce the same key, otherwise the whole mechanism misses in the one case it exists for. The date is metadata, never part of the match.
 
 When the slug is already present, update what that earlier run wrote rather than appending beside it. Two limits on "update":
 
@@ -159,7 +159,7 @@ A re-run that finds everything already applied is a valid outcome. Report it and
 - **Success Criteria**: Amend an `SC-XXX` whose target the shipped behaviour changed, or add one continuing from the highest existing ID.
 - **Assumptions**: Correct an assumption the implementation invalidated, and add one the implementation now depends on.
 - **User Scenarios**: Add a missing user story only when the drift is not covered by any existing one.
-- **Revision Note**: Add a block at the bottom, **unless one carrying this run's slug is already there**, in which case amend it:
+- **Revision Note**: **Only if one of the sections above was actually modified**, add a block at the bottom — unless one carrying this run's slug is already there, in which case amend it. A spec this gap report did not touch gets no note. The date records the first sync for this slug and is never updated on amend, so a re-run that changes nothing leaves no diff.
   ```markdown
   ### Revision: Implementation Sync [YYYY-MM-DD] [Sync: slug]
   - Reason: [Summary of drift reconciled]
@@ -199,6 +199,7 @@ Output the final report:
 # Sync Impact Report
 
 ## Changed Files
+[Only files this run actually wrote. Omit any that were skipped or unchanged; `## Scoping` accounts for those.]
 | File (absolute path) | Change Summary |
 |----------------------|----------------|
 | `/absolute/path/to/spec.md` | Amended FR-014, one Acceptance Scenario |
