@@ -47,7 +47,7 @@ You can optionally restrict the scope of the updates:
 ## Workflow
 
 1.  **Parse the Gap Report** to determine what drift occurred.
-2.  **Run the core Spec-Kit `check-prerequisites.sh` script** to identify target feature artifacts.
+2.  **Resolve paths**: read `REPO_ROOT` from the core `check-prerequisites.sh` script; the feature comes from the path you passed.
 3.  **Normalize Gaps** into categories (Wiring & Navigation, Contracts, Test Coverage, etc.).
 4.  **Surgically Edit** the feature's specific `spec.md`, `plan.md`, and `tasks.md`.
 5.  **Output a Sync Impact Report** detailing the created tasks and next steps (e.g., routing to `/speckit.implement`).
