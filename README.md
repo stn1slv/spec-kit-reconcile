@@ -11,7 +11,9 @@ This extension acts as the "Inner Loop" of the Double-Loop Parity framework: it 
 ## Features
 
 - **Gap Report Input**: Accepts free-form natural language observations about what was missed or changed during implementation.
+- **Full Spec Coverage**: Amends whichever sections the drift actually reaches — Functional Requirements, Acceptance Scenarios, Edge Cases, Key Entities, Success Criteria and Assumptions — and leaves the rest alone.
 - **Remediation Engine**: Appends new tasks (`T###`) to `tasks.md` with auto-incremented IDs and exact file paths.
+- **Safe to Re-run**: Tasks carry a `[Sync: ...]` tag, so submitting a refined version of the same gap report updates the earlier result instead of duplicating it.
 - **Enforced Verification**: Automatically mandates integration test tasks for any discovered wiring or navigation gaps.
 - **Compliance Checks**: Includes lightweight validations against the project's `constitution.md` to prevent violating core "MUSTs".
 - **Actionable Reporting**: Provides a conditional "Next Step" in the Sync Impact Report.
@@ -21,9 +23,9 @@ This extension acts as the "Inner Loop" of the Double-Loop Parity framework: it 
 You can install this extension via the Spec-Kit CLI:
 
 ```bash
-specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.0.1.zip
+specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.1.0.zip
 ```
-*(Note: Replace `v1.0.1` with the latest release version)*
+*(Note: Replace `v1.1.0` with the latest release version)*
 
 ## Usage
 
@@ -32,6 +34,14 @@ Provide a plain-text gap report to the command describing the implementation dri
 ```bash
 /speckit.reconcile.run "Backend exists, but React screen is unreachable; need sidebar link and route"
 ```
+
+By default the command reconciles the feature you worked on last. Pass a feature path first to reconcile a different one:
+
+```bash
+/speckit.reconcile.run specs/007-invoice-settings "The /api/v1/settings endpoint now requires an org_id header"
+```
+
+Re-running the same gap report is safe: it updates what it already wrote instead of appending a second set of tasks.
 
 You can optionally restrict the scope of the updates:
 - `--spec-only` — update only `spec.md`

@@ -5,9 +5,35 @@ All notable changes to the Reconcile extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.1] - 2026-08-09
+## [1.1.0] - 2026-08-09
+
+### Added
+
+- Spec reconciliation now covers every section of the canonical `spec-template.md`. Previously
+  only user scenarios and "acceptance criteria" were amended, so a gap report describing a
+  changed capability had nowhere to land. Functional Requirements, Edge Cases, Key Entities,
+  Success Criteria and Assumptions are now all in scope, and only the sections the gap report
+  actually reaches are touched.
+- Optional leading `specs/###-feature-name` argument, so you can reconcile a feature other than
+  the one you worked on last. The supplied path always wins over the script's resolution, and
+  the report says which was used.
+- Idempotency. Re-running the same gap report no longer appends a duplicate task set and a
+  second revision note. Tasks carry a `[Sync: YYYY-MM-DD slug]` tag that acts as the re-run key.
+- The Sync Impact Report gained `Feature Resolution` and `Scoping` sections, and recommends
+  re-running `/speckit.archive.run` when the reconciled feature has already been archived, since
+  those edits leave project memory stale.
 
 ### Fixed
+
+- Scope modifiers are now enforced. `--spec-only`, `--plan-only` and `--tasks-only` were
+  declared in the input parsing and then never referenced again, so they had no defined effect
+  on what was written. They are now honored across all edits, combine as a union, are matched
+  as whole trailing tokens rather than as substrings of the gap report, and are reported.
+- `tasks.md` is no longer created during the Step 0 gate. It was created before the clarification
+  pause and before the impact map that promises a preview before any edit, so abandoning the run
+  left a stray file behind. It is now created in 4.3, only when in scope and only when there are
+  tasks to write.
+- A non-zero exit from `check-prerequisites.sh` is handled instead of being undefined.
 
 - Remediation tasks are no longer marked `[P]`. The command described `[P]` as a priority flag
   for blocking or high-urgency work, but in Spec-Kit `[P]` means "can run in parallel: different
