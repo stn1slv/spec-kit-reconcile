@@ -1,6 +1,3 @@
-"""Fixture stub: attachment routes."""
-
-
 def upload(task_id):
     ...
 

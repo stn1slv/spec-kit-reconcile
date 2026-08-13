@@ -37,7 +37,9 @@ $ARGUMENTS
 
 If **several** modifiers are supplied, the scope is their **union**: `--spec-only --tasks-only` updates both `spec.md` and `tasks.md` and nothing else.
 
-**Trailing modifiers are still recognised**, because earlier versions of this command accepted only that form: a modifier appearing as a whole token at the very **end** of the input scopes the run exactly as a leading one does. The leading position is canonical and unambiguous; the trailing one is a compatibility path and carries the ambiguity that motivated the change. If the report's own last words are a flag-like token, prefer the scoping reading and state the interpretation under `## Scoping`, so a user who meant it as prose can see it and re-quote. A modifier in the **middle** of the report is prose.
+**Trailing modifiers are still recognised**, because earlier versions of this command accepted only that form. The **trailing run of modifier tokens** — the unbroken sequence of them at the very end of the input, one or several — scopes the run exactly as leading ones do, and several combine into the same union: `…report text --spec-only --tasks-only` writes both files, as it did before this version. It is the *run* that must reach the end, not each modifier individually.
+
+The leading position is canonical and unambiguous; the trailing one is a compatibility path and carries the ambiguity that motivated the change. When the report's own last words are **one of the three modifiers**, take the scoping reading — not "prefer" it, since a parser that hedges gives two agents two answers — and state the interpretation under `## Scoping`, so a user who meant it as prose can see it and re-quote. A trailing token that starts with `--` but is **not** one of the three (`--force`, say) is **prose**, never an error: rule 3's rejection is leading-position only. A modifier anywhere before the trailing run is prose.
 
 **Validate everything else.** The first four checks are textual and run before Step 0; the fifth needs `REPO_ROOT` and so runs as soon as 0.1 has resolved it, still ahead of every write. **No file is written when any of them fails** — a rejected invocation must leave the repository exactly as it found it.
 
@@ -81,9 +83,12 @@ When the report asks for something on this list, do not comply and do not stop: 
 Everything you write into the feature's artifacts must come from the sources below. **This list is complete.**
 
 - The **gap report** itself
-- The artifacts inside `FEATURE_DIR` — `spec.md`, `plan.md` and `tasks.md` fully; `data-model.md` and `contracts/` where a step asks about an entity or a contract
+- The artifacts inside `FEATURE_DIR` — `spec.md`, `plan.md` and `tasks.md` fully; `data-model.md` for 4.1's Key Entities bullet, and `contracts/` for 4.2's Integration Contracts bullet
 - `.specify/memory/constitution.md` (0.2 and Step 1) and `.specify/memory/changelog.md` (0.2 and Step 5)
+- `.specify/templates/` — read-only, and for one thing only: the section names and section **order** a project's own templates define, which Step 4's missing-section rule needs. Never take content from a template
 - The output of `{SCRIPT}`
+
+The step numbers above are **descriptive, not restrictive**. This list bounds *which files* you may take content from, never *which step* may read one.
 
 **Path resolution is a separate, narrower permission.** 4.3 requires every remediation task to name an exact file path, and a gap report often describes a target ("the sidebar") rather than naming one. You may therefore read the **repository tree and its source files, read-only**, for one purpose only: to resolve a described target to a real path, and to confirm that a path you are about to write exists. Take nothing else from them — no requirement, scenario, plan sentence, or acceptance criterion ever comes from source code, because the gap report is what states the drift and code cannot state its own intent.
 
@@ -109,6 +114,8 @@ Resolve paths **in this order** — each depends on the one before it, so do not
 - **If the script runs but exits non-zero** — commonly `Feature directory not found` on a checkout with no `.specify/feature.json` — this is **not** fatal. Its feature directory is not used anyway (see step 2). Recover `REPO_ROOT` by resolving the first token of `$ARGUMENTS` against the **current working directory** and walking up to the nearest ancestor containing `.specify/`. Note the fallback in the Step 5 report. Stop only if no such ancestor exists.
 
 **2. `FEATURE_DIR` — the argument always wins.** Resolve the first token **under `REPO_ROOT`**, not under the current working directory, even when step 1's fallback started from cwd — the walk-up has already established `REPO_ROOT` by then, and a run invoked from a subdirectory would otherwise reject a perfectly valid `specs/001-x`. Apply the **ambiguous first token** check from Input Parsing at this point.
+
+**A token written relative to the cwd resolves to the same directory.** `../specs/001-x`, passed from a subdirectory, means the feature that `specs/001-x` names under `REPO_ROOT`; it does not mean a path outside the repository. Strip any leading `../` segments before resolving, and resolve what remains under `REPO_ROOT`. A first token that still points outside `REPO_ROOT` after that fails the ambiguous-first-token check like any other non-match.
 
 Ignore whatever feature directory `{SCRIPT}` reports. It resolves the project's own state (`SPECIFY_FEATURE_DIRECTORY`, then `.specify/feature.json`) — whichever feature was last worked on, which is not necessarily the one that drifted. When the two differ, report both in Step 5, because this command rewrites three files in place and a user who passed the wrong path needs to see it.
 
@@ -173,12 +180,16 @@ A MUST rule can fail in more than one way, matching the three records from 0.2. 
      Missing:      [the statement the rule requires, and whether it is absent everywhere or only from the named location]
    → Raised in Step 2. This never withholds anything.
    ```
-   **Never write the missing statement yourself.** The gap report states what the implementation does, not what the author intends the rule to say. The legitimate remedy is a remediation task directing the author to make the statement, which 4.3 writes like any other task.
+   **Never write the missing statement yourself.** The gap report states what the implementation does, not what the author intends the rule to say. The legitimate remedy is a remediation task directing the author to make the statement, which 4.3 writes like any other task — **unless `tasks.md` is out of scope**, in which case write nothing and name the un-written task under `## Scoping`, exactly as 4.3 rule 4 does for the mandatory integration test. A scope modifier is never overridden to satisfy an obligation.
 3. **Action-requiring** — the rule asks for something to be *done*. This command reads artifacts and cannot inspect a codebase, a test run, or a CI result, so it can never establish that the action happened, and never that it did not. **Report it as unverified under `## Outstanding Items`; never flag it and never ask about it.** A claim is not a verification: a plan saying nothing, a plan claiming "tests for both routes", and a Testing Strategy whose list omits one route are all equally unverified. The one exception is an artifact **explicitly stating the action was skipped** ("no tests for this route yet"), which is ordinary content contradicting a rule and goes through shape 1.
 
    Where the drift itself closes such a rule, the remediation task is the right output — a **Wiring & Navigation** gap under a "routes MUST have tests" rule already produces the mandatory integration test of 4.3.
 
 **Your judgment belongs in deciding whether a rule's condition is met, not in deciding whether a qualifying finding is worth raising.** Once a conflict or an obligation qualifies, it goes to Step 2 and the user decides. An argument for why a finding is too minor to raise is an answer to the Step 2 question, not a reason to skip it.
+
+**The feature's own `## Constitution Check` is input, not a verdict.** A `plan.md` usually carries one. Read it, and quote it in the Step 2 question when it bears on the answer, but **never close a finding on it alone**: it records what the author believed at planning time, before the work was done, and re-checking that belief against what actually shipped is the reason this check exists. "No violations" in a plan is evidence about intent, not a finding.
+
+**But distinguish a verdict from a statement of fact.** What that rule bars is treating the author's *opinion about compliance* as the answer. It does not bar the section from containing content a rule actually asks for. Where a MUST rule requires the feature to **state or record something**, and the Constitution Check is where the feature states it, that statement satisfies the obligation like any other. The test is what the sentence does: **"we checked and it is fine" is a verdict and closes nothing; "here is what we changed and why" is the record the rule demanded.**
 
 ### 1.2 Bugfix annotations
 
@@ -200,7 +211,7 @@ If the gap report is ambiguous (e.g., "the button doesn't work" without saying w
 **Always ask** about the CRITICAL findings from 1.1. Ask **conflicts and obligations as separate questions**, bundling all of each category into one, because the two take different answers: an obligation may be closed as an accepted gap and a conflict may not.
 
 - **Conflict question.** Legal options: **declare it not actually a conflict** (the rule does not say what it appeared to say, or the item does not do what it appeared to do), which clears the flag and writes the item normally; **revise the gap report and re-run**; or **leave it unresolved**. "Write it anyway" is **not** an option. Only the first option keeps the item on this run — revising and re-running withholds it now exactly as leaving it unresolved does, and the difference is only what the user intends to do next. Say so, so nobody is left believing the item lands this time.
-- **Obligation question.** Legal options: **record it as an accepted gap**; **add a remediation task** directing the author to make the statement; or **declare the obligation not triggered** because the condition is not actually met. Every option archives the drift's own content normally.
+- **Obligation question.** Legal options: **record it as an accepted gap**; **add a remediation task** directing the author to make the statement (subject to 1.1's scope carve-out); or **declare the obligation not triggered** because the condition is not actually met. Under every option the drift's own content is reconciled normally.
 
 Use this format and **wait for answers**:
 
@@ -223,7 +234,9 @@ Use this format and **wait for answers**:
 
 ## Step 3: Impact Map
 
-Before making any edits, produce a brief impact map. It is the user's preview of this run, so it must promise only what the run will actually do: mark any artifact a scope modifier excluded as `Skipped (out of scope)`, any artifact an earlier run already reconciled under this slug as `No change (already applied)`, and any item withheld by an unresolved conflict as `Withheld`. Derive the slug per Step 4 before producing this map.
+Before making any edits, produce a brief impact map. It is the user's preview of this run, so it must promise only what the run will actually do: mark any artifact a scope modifier excluded as `Skipped (out of scope)`, and any artifact an earlier run already reconciled under this slug as `No change (already applied)`. Derive the slug per Step 4 before producing this map.
+
+This table's rows are **artifacts**. An item withheld by an unresolved conflict is not an artifact and has no row here; it is recorded in the Targets table below, whose rows are items.
 
 ```markdown
 ### Sync Impact Map
@@ -234,7 +247,9 @@ Before making any edits, produce a brief impact map. It is the user's preview of
 | `tasks.md` | Append remediation tasks | T045, T046, T047 |
 ```
 
-**Then the target table**, one row per normalized remediation item. It records *which existing item each amendment will land on* before any edit, rather than leaving that choice implicit in the writing — the same choice made twice can otherwise come out two different ways. Identify each target by the **citation ladder** defined in Step 4.
+**Then the target table.** It records *which existing item each amendment will land on* before any edit, rather than leaving that choice implicit in the writing — the same choice made twice can otherwise come out two different ways. Identify each target by the **citation ladder** defined in Step 4.
+
+**One row per item-artifact pair**, not per item: a single remediation item that reaches both `spec.md` and `plan.md` takes two rows, because it amends a different entry in each and each of those choices needs its own preview. An item that reaches no artifact takes exactly one row, with `—` for the artifact and `None` for the action. An item withheld by an unresolved conflict takes one row with the action `Withheld`.
 
 ```markdown
 ### Targets
@@ -246,7 +261,13 @@ Before making any edits, produce a brief impact map. It is the user's preview of
 | 4 | org_id header now required | Contracts | `plan.md` | Integration Contracts → "Settings API" | Amend |
 ```
 
-**State the counts** below the table: `normalized items: M; amending an existing item: K; new: N; reaching no artifact: Z; withheld: W`. A zero must be legible as "examined and found nothing to amend", never as "did not look" — an artifact left unchanged is a finding about the drift, not an absence of work.
+**State the counts** below the table, and **state the unit of each**, because a number whose unit is guessed is a number two runs will disagree on:
+
+```
+normalized items: M (items); rows: R (item-artifact pairs); amending: K (rows); new: N (rows); reaching no artifact: Z (items); withheld: W (items)
+```
+
+`K + N` counts rows and must equal `R` minus the rows for withheld items and for items reaching no artifact. `M` counts items, and `Z + W` are subsets of it. The two units are never added together. A zero must be legible as "examined and found nothing to amend", never as "did not look" — an artifact left unchanged is a finding about the drift, not an absence of work.
 
 Step 4 writes exactly this table. An item that turns out to have no viable target is added as new and the divergence is named in the report.
 
@@ -273,7 +294,11 @@ When the slug is already present in the artifact you are writing, update what th
 
 A re-run that finds everything already applied is a valid outcome. Report it and change nothing.
 
-**A section the drift reaches but the artifact lacks** is created, in the position the project's own template puts it (`## Assumptions` after Success Criteria, matching `spec-template.md`'s order). Name every section created this way in the report — a new heading in someone's spec should never be a surprise.
+**A section the drift reaches but the artifact lacks** is created, in the position the project's own template puts it (`## Assumptions` after Success Criteria, matching `spec-template.md`'s order — `.specify/templates/` is readable for exactly this, per Allowed Sources).
+
+**When the artifact renames its sections, map by role, not by name.** 4.1 already requires following the project's own headings, so a spec whose Success Criteria section is called `## How We'll Know It Works` puts the new section **after that heading**, because that heading plays the template position's role. Match on what a section is *for*, never on its wording. When no section in the artifact plays the role the template's neighbour plays, append the new section at the end of the file and say so in the report, so the placement is a stated choice rather than a silent one.
+
+Name every section created this way in the report — a new heading in someone's spec should never be a surprise.
 
 **Revision notes.** Their place and form are fixed, because later runs **read** them: the slug match above depends on finding one an earlier run wrote, and the `Items:` line is what makes a re-run amend the right entries instead of guessing from prose.
 
@@ -304,6 +329,8 @@ A re-run that finds everything already applied is a valid outcome. Report it and
 - **Revision Note**: **Only if one of the sections above was actually modified**, add or amend the note per the rules above. A spec this gap report did not touch gets no note.
 
 ### 4.2 Update Plan (`plan.md`)
+
+**Detect the plan's actual section names before editing, and follow what you find**, exactly as 4.1 requires for the spec. The names below are the canonical ones and are **illustrative, not exhaustive**: a plan holds Summary, Technical Context, Project Structure, Configuration and others, and a drift that reaches one of those amends it like any other. What bounds this step is the drift, not this list.
 
 **Touch only the sections the gap report actually implicates**, as in 4.1. A drift that reaches no plan section leaves this file alone entirely.
 
@@ -360,7 +387,7 @@ Output the final report. Use **absolute paths** for all file references.
 [Every 1.1 finding with its disposition: the user's Step 2 answer, or why it is still unresolved. Name each withheld item, the rule it conflicts with, and the recommendation to resolve it and re-run. A finding the user closed ("not actually triggered", "accepted gap") belongs here too — a closed finding that appears nowhere is indistinguishable from one that was never raised. State plainly that an accepted gap is recorded nowhere but here, so a re-run will detect and ask again. Or "None".]
 
 ## Scoping
-[Which artifacts were skipped due to scope modifiers, including any mandatory integration test that was therefore not written, and which were left unchanged because an earlier run under this slug had already applied them. State the interpretation if the report's final words were flag-like. Note it if the path-resolution script failed and `REPO_ROOT` was derived from the supplied feature path.]
+[Which artifacts were skipped due to scope modifiers, and which were left unchanged because an earlier run under this slug had already applied them. **For each skipped artifact, name what this drift would have written into it** — a skipped artifact is not "nothing happened", it is a known, named omission, and a reader who cannot see what was left out cannot decide whether to re-run. That includes any mandatory integration test not written, and any remediation task an obligation asked for that 1.1's carve-out suppressed. State the interpretation if the report's final words were one of the three modifiers. `REPO_ROOT` derivation belongs in `## Path Resolution`, not here.]
 
 ## New Remediation Tasks
 [List the new tasks added, e.g.]
@@ -371,7 +398,7 @@ Output the final report. Use **absolute paths** for all file references.
 [On a re-run, list what was already present and left unchanged, or "Already applied; no changes".]
 
 ## Outstanding Items
-[Everything this run noticed and did not act on, in one place — the section formerly called `Outstanding Decisions`, widened. Any remaining `NEEDS CLARIFICATION` markers. Sections created because the artifact lacked them. Tasks written without a path because none resolved. Struck-through text left as it stands because it had neither a Bugfix marker nor a replacement, and any overlap with a task reopened by a bugfix cycle. Any revision notes found in another place or form, with the split named. Each action-requiring constitution rule reported as unverified, with what would settle it — these are unverified, not violated. Any discretionary question the budget could not hold. Or "None".]
+[Everything this run noticed and did not act on, in one place — the section formerly called `Outstanding Decisions`, widened. Any item withheld by an unresolved constitution conflict, with the rule it conflicts with and the recommendation to resolve it and re-run. Any remaining `NEEDS CLARIFICATION` markers. Sections created because the artifact lacked them, and any section appended at the end of a file because no template position could be mapped. Tasks written without a path because none resolved. Struck-through text left as it stands because it had neither a Bugfix marker nor a replacement, and any overlap with a task reopened by a bugfix cycle. Any revision notes found in another place or form, with the split named. Each action-requiring constitution rule reported as unverified, with what would settle it — these are unverified, not violated. Any discretionary question the budget could not hold. Or "None".]
 
 ## Defaults Applied
 [Any decision made with a reasonable default instead of asking, or "None"]

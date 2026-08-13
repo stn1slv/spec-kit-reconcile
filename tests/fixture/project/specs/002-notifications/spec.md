@@ -46,3 +46,7 @@ An owner with several due tasks receives one digest rather than one message per 
 
 - **M1**: 99% of reminders are delivered within 60 seconds of the scheduled time.
 - **M2**: No owner receives more than one digest in a calendar day.
+
+## Open Questions
+
+- Whether a reminder should fire for a task whose due date is changed after the reminder was queued.

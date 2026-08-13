@@ -1,2 +1,1 @@
-// Fixture stub.
 export {};

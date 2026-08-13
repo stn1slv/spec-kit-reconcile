@@ -55,9 +55,17 @@ adapted rather than copied: the two commands write to different files and do dif
 
 - **Scope modifiers are read immediately after the feature path**, which is where the archive
   extension reads them and where they are unambiguous. The trailing position earlier versions
-  required is still recognised, so no existing invocation breaks — but it is the position that
-  forced the "if the report's last words look like a flag, prefer the scoping reading" rule, and it
-  keeps that ambiguity. The leading position has none.
+  required is still recognised, including a trailing **run** of several modifiers, which combines
+  into the same union v1.1.0 documented. The trailing position is what forced the "if the report's
+  last words look like a flag, prefer the scoping reading" rule, and it keeps that ambiguity; the
+  leading position has none, and the hedge is gone — the scoping reading is now *taken*, not
+  preferred, since a parser that hedges gives two agents two answers.
+
+  **One invocation shape does change behaviour**, and it is the price of rejecting unknown flags: a
+  `--` token sitting immediately after the feature path that is not one of the three modifiers is
+  now a fatal error, where v1.1.0 read it as gap report prose. `specs/007 --force is now required by
+  the deploy script` ran before and stops now; write it as `specs/007 the deploy script now requires
+  --force` instead. Everywhere else a `--` word is still prose, trailing position included.
 - **A unique numeric prefix is accepted.** `specs/007` expands to `specs/007-invoice-settings` when
   exactly one directory matches. It was rejected outright here while the archive extension accepted
   it, so the same token behaved differently in two commands the same user runs in the same session.

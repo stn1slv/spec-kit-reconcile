@@ -8,6 +8,15 @@ A test runner is a **fresh agent given only `commands/reconcile.md` and its own 
 
 **Nothing-written rule**: for every rejection case, `git status` in the working copy must be clean afterwards. A rejection that leaves a stray file is a failure even when the error message is right.
 
+**Preparing a working copy.** The fixture is checked into this repository, so a runner must work on a copy placed **outside** it — otherwise `git status` reports this repository's own state rather than the run's. A copy is not a git working tree, so make it one before the run, or the nothing-written check cannot execute:
+
+```bash
+cp -R tests/fixture/project /somewhere/outside/run-NN
+cd /somewhere/outside/run-NN && git init -q && git add -A && git commit -qm baseline
+```
+
+Then `git status --porcelain` after the run is the check: empty for every rejection case, and the exact set of written files for every other case.
+
 ## Traps built into the fixture
 
 | # | Trap | Location | What it tests |
@@ -43,9 +52,11 @@ A test runner is a **fresh agent given only `commands/reconcile.md` and its own 
 - Step 3 prints the impact map **and** the target table before any edit, with the counts line. Editing before the preview is a miss even if the edits are right.
 - `spec.md`: the wiring item reaches an acceptance scenario or a new `FR-006`; the retention-sweep item amends `FR-005` or the Configuration-related requirement. IDs continue from `FR-005`; renumbering anything existing is a miss.
 - `plan.md`: `Routing & Navigation` gains the client `/settings` route; Configuration or Testing Strategy may be amended for the sweep move.
-- **R8, both halves**: adding the route to the plan's Routing section is what A1's *statement* half asks for, so no obligation flag. A1's *action* half (an integration test before merge) is **action-requiring**: reported under `## Outstanding Items` as unverified, never CRITICAL, never a question. Principle II is **satisfied** — 001's FR-005 states the retention rule — so a constitution flag on this case is a miss.
+- **R8, as a negative expectation.** A1 conditions on "any **new API route**". This drift adds a **client** route and a sidebar entry, and the report says the backend and its tests already exist, so A1's condition is **not met** and the correct output is **no A1 finding at all** — not a flag, not a question, and not an entry under `## Outstanding Items`. Principle II is likewise **satisfied**, since 001's FR-005 states the retention rule. **Any constitution finding on this case is a miss**, and that is what the case tests: 1.1's bound ("check only the rules the normalized remediation items actually reach") holding under pressure, on a run where a superficially related rule exists. Case H is where A1 is exercised positively, on a genuine `/api/v1/...` route.
+  *Registered because it cost the sibling extension two rounds:* a trap that depends on an agent inferring "client route ≡ API route" tests the inference, not the rule.
 - `tasks.md`: new tasks numbered from **T007**, none carrying `[P]`, the existing `[P]` on T002/T003/T005 untouched, no `[X]` task edited. A wiring gap was identified, so an integration test task is mandatory.
-- **R16**: the sidebar task resolves to `src/components/Sidebar.tsx` and the route task to `src/router/index.ts`; `## Sources` declares the read-only lookup that found them. The "settings service" resolves to nothing — no such file exists and 001's Project Structure does not name one — so its task is written **without a path** and named under `## Outstanding Items`. Inventing `src/services/settings.py` is the failure this trap exists for.
+- **R16**: the sidebar task resolves to `src/components/Sidebar.tsx` and the route task to `src/router/index.ts`; `## Sources` declares the read-only lookup that found them.
+  The "settings service" resolves to nothing — no such file exists and 001's Project Structure does not name one. **Two outcomes pass**, because the command does not force a task for an item a plan amendment can close: either the item produces a task written **without a path**, named under `## Outstanding Items`; or it produces **no task at all**, closed by the plan's Configuration and Testing Strategy amendments, which the report says so. **Exactly one outcome fails: a task carrying an invented path** such as `src/services/settings.py`. That is the failure this trap exists for, and it is what the case grades.
 - Revision notes at the bottom of `spec.md` and `plan.md`, each carrying one slug and an `Items:` line naming the entries touched.
 - **R15**: the Next Step recommends `/speckit.archive.run specs/001-task-manager`.
 - The report carries every section its template defines, including `## Gap Report` with the text verbatim.
@@ -120,7 +131,7 @@ Every one must print the specified error and **write nothing**; verify with `git
 ```
 
 - **R2**: new requirements are `REQ-004` onward under `## Behaviour Rules`; entity changes land under `### Things We Store`; a measurable outcome, if any, takes `M3`. Writing `FR-001` or creating a canonical `## Requirements` section beside the existing one is a miss.
-- **R3**: `## Assumptions` does not exist and the report invalidates one, so the section is **created** — after `## How We'll Know It Works`, matching the template's order — and the creation is named under `## Outstanding Items`.
+- **R3**: `## Assumptions` does not exist and the report invalidates one, so the section is **created** — **directly after `## How We'll Know It Works`**, which is this project's Success Criteria section by role, matching the template's order — and the creation is named under `## Outstanding Items`. 002's spec ends with `## Open Questions`, so "template position" and "appended at the end of the file" produce **different** results here and the trap discriminates; appending after `## Open Questions` is a miss. This is also the map-by-role test: the heading is not named "Success Criteria", and matching on wording rather than on what the section is for gets it wrong.
 - **R8**: 002 stores `Notification` rows and states **no** retention rule anywhere in its artifacts, so Principle II's obligation is triggered and unsatisfied. It is flagged `🔴 CONSTITUTION OBLIGATION UNMET`, asked in Step 2 as its own question, and **withholds nothing**. The plan's "No violations" is bait. The command must **not** write a retention rule into the spec; offering a remediation task that directs the author to state it is the correct remedy.
 - A1: the digest route is added to the plan's `## Routing & Navigation` (statement half satisfied); the integration-test half is reported as unverified, and the mandatory integration test task is written because this is a wiring gap.
 - **R12**: `tasks.md` did not exist and is created in 4.3, with a `## Remediation: Gaps` heading and numbering from **T001**. If the run somehow writes no tasks, the file must not exist afterwards.
@@ -129,10 +140,13 @@ Every one must print the specified error and **write nothing**; verify with `git
 ## Case I — 003, full scope, clean fixture
 
 ```
-/speckit.reconcile.run specs/003-attachments The upload progress bar still doesn't appear for files under 1 MB, and the retry path was never wired to it either.
+/speckit.reconcile.run specs/003-attachments The cancel affordance still isn't reachable for uploads under 1 MB — the progress component never mounts for them — and the retry path never got one either.
 ```
 
-- **R13**: the existing `upload-progress` slug is **reused**, in both artifacts and on the new tasks. A new slug is a miss. Both revision notes are amended in place, keeping their `2026-08-11` date, with the `Items:` line extended. A second note in either file is a miss.
+The report is deliberately a **refinement of the drift the existing note already records** ("the progress indicator shipped without a cancel affordance"), not a new problem in the same component. That is what makes slug identity decidable rather than a judgment call: an earlier wording of this case described a different failure mode, where minting a new slug would have been a defensible reading and the expectation would have graded an opinion.
+
+- **R13**: the existing `upload-progress` slug is **reused**, in both artifacts and on the new tasks. A new slug is a miss. The existing note is amended in place, keeping its `2026-08-11` date, with the `Items:` line extended; a second note in the same file is a miss.
+  **`spec.md`'s note is amended for certain.** `plan.md`'s note is amended **only if a plan section is actually reached** — 4.2 says a drift reaching no plan section leaves the file alone entirely, and a run that correctly leaves `plan.md` untouched here passes. What is graded is consistency: a plan note amended without a plan edit, or a plan edit without its note, is a miss.
 - **R6**: `FR-003` is amended. `FR-002`'s struck local-disk wording is **not** restored and not carried anywhere; its `**Bugfix**:` line is left exactly as it stands and never treated as requirement text. The orphan strikethrough in Edge Cases is left untouched and named under `## Outstanding Items`.
 - **R5**: T004 is annotated `(reopened — BUG-002)`, so it is incomplete — but it is not edited, not re-checked, and not repurposed. New tasks start at **T006**, and the overlap with the reopened task is named under `## Outstanding Items`.
 - **The `bugs/` reports are not read for content.** `BUG-002.md` proposes exactly the right amendment, and taking it — or citing it, or listing it under `## Sources` — is the miss this case exists for.
@@ -165,8 +179,10 @@ Paths this fixture does **not** exercise, recorded so a future round can close t
 - An artifact carrying revision notes in an **older** place or form, which the command is supposed to leave alone while starting its own block.
 - A feature whose `spec.md` uses a heading the drift reaches that exists in neither the file nor the template.
 - Concurrent scope modifiers in the leading **and** trailing position in one invocation.
+- A **trailing run of several modifiers** (`… report text --spec-only --tasks-only`), which is the union form v1.1.0 documented. J1 covers the union in the leading position only.
+- A `--` token in the leading position that is not a modifier, which is now a fatal error where v1.1.0 read it as prose. G4 covers a *malformed* modifier (`--spec--only`); it does not cover a well-formed unrelated flag such as `--force`.
 - The **non-zero exit** branch of 0.1, where `REPO_ROOT` is recovered by walking up from the argument. The fixture's script always exits 0, because `.specify/` is its root marker and `feature.json` is always present. Reaching this branch needs a variant copy with `feature.json` removed, and the expectation has to be written against that variant's actual exit status rather than assumed.
 
 ## Verifying a run
 
-The fixture is checked into this repository, so a runner must work on a **copy** placed outside it — `git status` inside the repo would otherwise mix the runner's writes with the repository's own. Confirm before each case that `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` returns `REPO_ROOT` pointing at the copy and `FEATURE_DIR` pointing at `003-attachments`; that pairing is what makes trap R1 fire for every case that targets 001 or 002.
+Prepare the copy as described at the top of this file, then confirm before each case that `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` returns `REPO_ROOT` pointing at the copy and `FEATURE_DIR` pointing at `003-attachments`; that pairing is what makes trap R1 fire for every case that targets 001 or 002.
