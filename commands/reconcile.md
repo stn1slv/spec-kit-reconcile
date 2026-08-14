@@ -39,12 +39,14 @@ If **several** modifiers are supplied, the scope is their **union**: `--spec-onl
 
 **Trailing modifiers are still recognised**, because earlier versions of this command accepted only that form. The **trailing run of modifier tokens** — the unbroken sequence of them at the very end of the input, one or several — scopes the run exactly as leading ones do, and several combine into the same union: `…report text --spec-only --tasks-only` writes both files, as it did before this version. It is the *run* that must reach the end, not each modifier individually.
 
-The leading position is canonical and unambiguous; the trailing one is a compatibility path and carries the ambiguity that motivated the change. When the report's own last words are **one of the three modifiers**, take the scoping reading — not "prefer" it, since a parser that hedges gives two agents two answers — and state the interpretation under `## Scoping`, so a user who meant it as prose can see it and re-quote. A trailing token that starts with `--` but is **not** one of the three (`--force`, say) is **prose**, never an error: rule 3's rejection is leading-position only. A modifier anywhere before the trailing run is prose.
+The leading position is canonical and unambiguous; the trailing one is a compatibility path and carries the ambiguity that motivated the change. When the report's own last words are **one of the three modifiers**, take the scoping reading — not "prefer" it, since a parser that hedges gives two agents two answers — and state the interpretation under `## Scoping`, so a user who meant it as prose can see it and re-quote. A trailing token that starts with `--` but is **not** one of the three (`--force`, say) is **prose**, never an error: rule 3's rejection is leading-position only.
+
+**Only the middle is prose.** Both ends scope: the leading position per grammar rule 2, and the trailing run per this paragraph. A modifier is prose only when it sits **after the gap report has begun and before the trailing run** — `specs/001 fix the --spec-only screen` scopes nothing, while `specs/001 --spec-only fix the screen` scopes normally. When modifiers appear in **both** positions, the scope is the union of all of them, exactly as several modifiers in one position combine.
 
 **Validate everything else.** The first four checks are textual and run before Step 0; the fifth needs `REPO_ROOT` and so runs as soon as 0.1 has resolved it, still ahead of every write. **No file is written when any of them fails** — a rejected invocation must leave the repository exactly as it found it.
 
 1. **Empty input, or no feature at all.** If `$ARGUMENTS` is empty, **or the first token starts with `--`** (the feature path must come first, before any modifier), output `ERROR: No feature spec directory provided. Usage: /speckit.reconcile.run specs/###-feature-name [--scope-modifier] [gap report]` and stop.
-2. **More than one feature.** This check comes **before** the flag check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature. The checks key on **feature-shaped tokens** — a token whose path contains a `specs/###` segment in any form, with or without the trailing name (`specs/002-x`, `specs/001`, `../specs/002-x`, `/repo/specs/002-x`; a glob character may stand in for digits, as in `specs/00*`), or a bare feature number or name such as `007` or `007-invoice-settings`. A `specs/` path counts **anywhere** in the input; a bare number or name counts only **in the leading region** (before the first prose token), or **beside a range marker whose other side is a feature reference** (the `008` in `specs/001 thru 008`) — digits inside later prose (`handle 404 errors`, `max 500 items`, `3 screens are unreachable`) are gap report, and so is ordinary punctuation (`double-checked?`, `billing/invoicing`, `*emphasis*`):
+2. **More than one feature.** This check comes **before** the flag check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature. The checks key on **feature-shaped tokens** — a token whose path contains a `specs/###` segment in any form, with or without the trailing name (`specs/002-x`, `specs/001`, `../specs/002-x`, `/repo/specs/002-x`; a glob character may stand in for digits, as in `specs/00*`), or a bare feature number or name such as `007` or `007-invoice-settings`. A `specs/` path counts **anywhere** in the input; a bare number or name counts only **in the leading region** — the first token, any modifiers, and the token immediately following them, which is where a second feature would be written if one were meant (`specs/001-task-manager 002-notifications …`). Defining it positionally matters: "before the first prose token" would be circular, since grammar rule 3 makes that very token the start of the gap report. A bare number or name also counts **beside a range marker whose other side is a feature reference** (the `008` in `specs/001 thru 008`) — digits inside later prose (`handle 404 errors`, `max 500 items`, `3 screens are unreachable`) are gap report, and so is ordinary punctuation (`double-checked?`, `billing/invoicing`, `*emphasis*`):
    - two or more feature-shaped tokens
    - a glob character (`*` or `?`) **inside a feature-shaped token** (`specs/00*`, `0??-export`)
    - a **word** range marker — `thru`, `through`, or `to` — appearing as a whole token between two feature references (`specs/001 thru specs/008`, `specs/001 thru 008`)
@@ -138,7 +140,11 @@ Read `FEATURE_SPEC`, `IMPL_PLAN`, and `TASKS_FILE` (the last one if it exists). 
 
 Also read `.specify/memory/changelog.md` if it exists, and note whether this feature already has an entry in the Merged Features Log. Step 5 uses this.
 
-Also read `.specify/memory/constitution.md` if it exists. Extract the MUST-level constraints — Core Principles, Architecture Standards, Quality Gates — and note for **each rule** which shape it takes, because Step 1 checks all three and a shape not recorded here is invisible later:
+Also read `.specify/memory/constitution.md` if it exists. Extract the MUST-level constraints from its Core Principles, Architecture Standards and Quality Gates.
+
+**A rule is MUST-level only when it says so.** Those three headings say where to look, not that everything under them binds: a constitution often carries aspirations, rationale and house style beside its rules, and a section heading does not promote them. Extract a rule when it states an obligation in binding terms (`MUST`, `MUST NOT`, `is not allowed`, `never`); leave the rest, and take no finding from it. Reading every bullet under a heading as binding turns Step 1 into a survey and produces a finding on every run.
+
+For each extracted rule, note which shape it takes, because Step 1 checks all three and a shape not recorded here is invisible later:
 
 - it **forbids** something ("shared or unassigned active tasks are not allowed");
 - it **requires a statement** from features meeting a condition ("every feature that stores user data MUST state its retention rule"), together with any location the rule names for that statement;
@@ -180,7 +186,11 @@ A MUST rule can fail in more than one way, matching the three records from 0.2. 
      Missing:      [the statement the rule requires, and whether it is absent everywhere or only from the named location]
    → Raised in Step 2. This never withholds anything.
    ```
-   **Never write the missing statement yourself.** The gap report states what the implementation does, not what the author intends the rule to say. The legitimate remedy is a remediation task directing the author to make the statement, which 4.3 writes like any other task — **unless `tasks.md` is out of scope**, in which case write nothing and name the un-written task under `## Scoping`, exactly as 4.3 rule 4 does for the mandatory integration test. A scope modifier is never overridden to satisfy an obligation.
+   **An obligation this run's own amendment satisfies is not unmet.** Where the gap report itself supplies the required content and Step 4 will write it into the location the rule names, the rule is met by that amendment: do not flag it, and do not ask about it. A constitution rule saying "any new API route MUST be declared in the plan's Routing & Navigation section", against a drift reporting a route the plan lacks, describes exactly the edit 4.2 is about to make — flagging it would raise a mandatory question about the work in progress. Judge shape 2 against the **end state this run will produce**, which the Step 3 target table names, not against the artifacts as they stand at 1.1. This is the same escape hatch shape 3 carries, and it exists for the same reason.
+
+   **Never write the missing statement yourself** in every other case. The gap report states what the implementation does, not what the author intends a rule to say, and a rule asking for a judgment the report does not make — a retention period, a threshold, a policy — is unmet however obviously it is missing. The legitimate remedy there is a remediation task directing the author to make the statement, which 4.3 writes like any other task — **unless `tasks.md` is out of scope**, in which case write nothing and name the un-written task under `## Scoping`, exactly as 4.3 rule 4 does for the mandatory integration test. A scope modifier is never overridden to satisfy an obligation.
+
+   The line between the two is whether the gap report already contains the answer. It does for "the digest endpoint was added after the plan was written"; it does not for "state your retention rule".
 3. **Action-requiring** — the rule asks for something to be *done*. This command reads artifacts and cannot inspect a codebase, a test run, or a CI result, so it can never establish that the action happened, and never that it did not. **Report it as unverified under `## Outstanding Items`; never flag it and never ask about it.** A claim is not a verification: a plan saying nothing, a plan claiming "tests for both routes", and a Testing Strategy whose list omits one route are all equally unverified. The one exception is an artifact **explicitly stating the action was skipped** ("no tests for this route yet"), which is ordinary content contradicting a rule and goes through shape 1.
 
    Where the drift itself closes such a rule, the remediation task is the right output — a **Wiring & Navigation** gap under a "routes MUST have tests" rule already produces the mandatory integration test of 4.3.
@@ -236,7 +246,7 @@ Use this format and **wait for answers**:
 
 Before making any edits, produce a brief impact map. It is the user's preview of this run, so it must promise only what the run will actually do: mark any artifact a scope modifier excluded as `Skipped (out of scope)`, and any artifact an earlier run already reconciled under this slug as `No change (already applied)`. Derive the slug per Step 4 before producing this map.
 
-This table's rows are **artifacts**. An item withheld by an unresolved conflict is not an artifact and has no row here; it is recorded in the Targets table below, whose rows are items.
+This table's rows are **artifacts**. An item withheld by an unresolved conflict is not an artifact and has no row here; it is recorded in the Targets table below, which is the table with a row for every item.
 
 ```markdown
 ### Sync Impact Map
@@ -250,6 +260,8 @@ This table's rows are **artifacts**. An item withheld by an unresolved conflict 
 **Then the target table.** It records *which existing item each amendment will land on* before any edit, rather than leaving that choice implicit in the writing — the same choice made twice can otherwise come out two different ways. Identify each target by the **citation ladder** defined in Step 4.
 
 **One row per item-artifact pair**, not per item: a single remediation item that reaches both `spec.md` and `plan.md` takes two rows, because it amends a different entry in each and each of those choices needs its own preview. An item that reaches no artifact takes exactly one row, with `—` for the artifact and `None` for the action. An item withheld by an unresolved conflict takes one row with the action `Withheld`.
+
+**`tasks.md` takes no rows here.** This table previews *which existing entry an amendment lands on*, and a remediation task is always new, so it has no target to preview; the Sync Impact Map above already names the tasks this run will generate. `R`, `K` and `N` therefore count rows against `spec.md` and `plan.md` only.
 
 ```markdown
 ### Targets
@@ -296,7 +308,7 @@ A re-run that finds everything already applied is a valid outcome. Report it and
 
 **A section the drift reaches but the artifact lacks** is created, in the position the project's own template puts it (`## Assumptions` after Success Criteria, matching `spec-template.md`'s order — `.specify/templates/` is readable for exactly this, per Allowed Sources).
 
-**When the artifact renames its sections, map by role, not by name.** 4.1 already requires following the project's own headings, so a spec whose Success Criteria section is called `## How We'll Know It Works` puts the new section **after that heading**, because that heading plays the template position's role. Match on what a section is *for*, never on its wording. When no section in the artifact plays the role the template's neighbour plays, append the new section at the end of the file and say so in the report, so the placement is a stated choice rather than a silent one.
+**When the artifact renames its sections, map by role, not by name.** 4.1 already requires following the project's own headings, so a spec whose Success Criteria section is called `## How We'll Know It Works` puts the new section **after that section's content, before the next heading of equal or higher level** — after the section, never immediately after its heading line, which would nest the new section inside it. Match on what a section is *for*, never on its wording. When no section in the artifact plays the role the template's neighbour plays, append the new section at the end of the file and say so in the report, so the placement is a stated choice rather than a silent one.
 
 Name every section created this way in the report — a new heading in someone's spec should never be a surprise.
 
@@ -354,7 +366,11 @@ Use the user story tag the task belongs to; omit it for tasks landing in `## Rem
 **Rules for Tasks**:
 1. **Increment IDs**: Find the highest `T###` in `tasks.md`. Start new tasks from `max + 1`. Never reuse or renumber.
 2. **Phase Placement**: Place new tasks under the **existing** phase heading that covers the affected user story. Core `tasks.md` files write these as `## Phase N: User Story N - [Title] (Priority: PN)`. Match the heading that is already in the file; never invent a new one from the `[USn]` task tag, which is an inline marker and not a heading. If no existing phase fits, create a `## Remediation: Gaps` section at the end.
-3. **Exact Paths**: Every task MUST include an exact file path where the change is needed. The path comes from the gap report, from `plan.md`'s project structure, or from the read-only repository lookup **Allowed Sources** permits — in that order of preference, and never from invention. When none of the three resolves a real file, write the task naming its target without a path and list it under `## Outstanding Items`.
+3. **Exact Paths**: Every task MUST include an exact file path where the change is needed. The path comes from the gap report, from `plan.md`'s project structure, or from the read-only repository lookup **Allowed Sources** permits — in that order of preference, and never from invention.
+
+   **A task that creates a file names the file it will create.** Most remediation edits an existing file, but a new test or a new module does not exist yet, and "confirm the path exists" cannot apply to it. Such a path is **derived, not invented, when the directory it sits in is one the plan's Project Structure declares or the repository already contains** — `tests/integration/navigation.test.ts` is derived when `tests/integration/` exists; `src/services/settings.py` is invented when nothing declares `src/services/`.
+
+   When neither an existing file nor a declared directory gives a path, write the task naming its target without one and list it under `## Outstanding Items`.
 4. **Mandatory Integration Test**: If you identified a **Wiring & Navigation** gap, you MUST add a task for an Integration Test to verify it — unless `tasks.md` is out of scope, in which case write nothing and name the omitted test under `## Scoping`.
 
 ---
@@ -375,7 +391,7 @@ Output the final report. Use **absolute paths** for all file references.
 | `/absolute/path/to/tasks.md` | Added [N] remediation tasks |
 
 ## Counts
-[The Step 3 numbers, as written: `normalized items: M; amending an existing item: K; new: N; reaching no artifact: Z; withheld: W`, plus any divergence between the target table and what was actually written. A zero here means examined and found nothing to amend.]
+[The Step 3 counts line, reproduced with its units exactly as Step 3 defines it — `normalized items: M (items); rows: R (item-artifact pairs); amending: K (rows); new: N (rows); reaching no artifact: Z (items); withheld: W (items)` — plus any divergence between the target table and what was actually written. A zero here means examined and found nothing to amend.]
 
 ## Sources
 [Confirm every change came only from the Allowed Sources. Declare the read-only repository lookup whenever it happened, naming what it resolved. Name anything you needed but could not find, and state that you did not reconstruct it or invent a path. If you consulted git to verify your own writes rather than to obtain content, say so here.]
@@ -423,7 +439,7 @@ Each criterion below applies only to artifacts in scope; an artifact a modifier 
 - Gap report parsed and categorized against a feature directory that resolved to exactly one existing path under `REPO_ROOT`.
 - All content taken only from the Allowed Sources, and the report says so. Every task path came from the gap report, the plan, or the read-only lookup — none invented, and any task left without one is named.
 - Gap report applied within its limits: echoed verbatim in the report, with any part that asked to widen sources, skip a step, change scope or IDs, or authorize a deletion named as refused.
-- All three constitution shapes checked against the rules the drift reaches, each finding carried to Step 2 or reported as unverified, and every finding's disposition recorded. No content withheld except by an unresolved conflict, and no missing statement written by this command.
+- All three constitution shapes checked against the rules the drift reaches, each finding carried to Step 2 or reported as unverified, and every finding's disposition recorded. No content withheld except by an unresolved conflict, and no statement written that the gap report did not supply — an obligation the run's own amendment satisfies from the report is met, not invented.
 - Edits match the Step 3 target table, and any divergence is named.
 - Every spec section the drift reaches is amended, and no section it does not reach is touched. Any section created is named in the report.
 - `tasks.md` updated with incremented `T###` IDs, exact file paths, and no `[P]` marker **on the tasks this run added**. Tasks written by `/speckit.tasks` legitimately carry `[P]`; never strip it from them.

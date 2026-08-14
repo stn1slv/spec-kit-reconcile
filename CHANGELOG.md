@@ -61,11 +61,16 @@ adapted rather than copied: the two commands write to different files and do dif
   leading position has none, and the hedge is gone — the scoping reading is now *taken*, not
   preferred, since a parser that hedges gives two agents two answers.
 
-  **One invocation shape does change behaviour**, and it is the price of rejecting unknown flags: a
-  `--` token sitting immediately after the feature path that is not one of the three modifiers is
-  now a fatal error, where v1.1.0 read it as gap report prose. `specs/007 --force is now required by
-  the deploy script` ran before and stops now; write it as `specs/007 the deploy script now requires
-  --force` instead. Everywhere else a `--` word is still prose, trailing position included.
+  **Two invocation shapes change behaviour**, both the price of rejecting input that used to be
+  improvised. First, a `--` token sitting immediately after the feature path that is not one of the
+  three modifiers is now a fatal error, where v1.1.0 read it as gap report prose: `specs/007 --force
+  is now required by the deploy script` ran before and stops now; write it as `specs/007 the deploy
+  script now requires --force` instead. Everywhere else a `--` word is still prose, trailing
+  position included. Second, a `specs/###` path **anywhere** in the input is now read as a second
+  feature and rejected, so a gap report that referred to another feature by path — `the digest route
+  from specs/002-notifications is missing here too` — ran before and stops now; refer to it by name
+  in prose instead. Both are deliberate, and both are the cost of the one-feature-per-run rule
+  being enforced rather than assumed.
 - **A unique numeric prefix is accepted.** `specs/007` expands to `specs/007-invoice-settings` when
   exactly one directory matches. It was rejected outright here while the archive extension accepted
   it, so the same token behaved differently in two commands the same user runs in the same session.
