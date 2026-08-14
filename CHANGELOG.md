@@ -21,7 +21,10 @@ adapted rather than copied: the two commands write to different files and do dif
   Content now comes from the gap report and the feature's own artifacts; the repository tree and its
   source files may be read **read-only for one purpose** — resolving a described target to a real
   path and confirming a path exists — and nothing else is taken from them. When no path resolves,
-  the task names its target without one and the omission is reported. Git history, deleted files,
+  the task names its target without one and the omission is reported. A task that creates a new file
+  is the one case a not-yet-existing path is correct, and only when the directory it sits in is one
+  the plan declares or the repository already contains: that path is derived, not invented. Git
+  history, deleted files,
   another feature's spec directory, `bugs/` reports and agent memory stores are named as
   non-sources. Verifying your own writes with git is still allowed; reading git for content is not.
 - **A contract for the gap report.** It is free text from the user and was treated as pure
@@ -36,15 +39,20 @@ adapted rather than copied: the two commands write to different files and do dif
   API routes MUST have automated tests") would have been flagged on every feature that never
   mentioned it. Conflicts, unmet obligations and action-requiring rules are now checked separately,
   bounded to the rules the drift actually reaches. An obligation never withholds content and its
-  missing statement is never written by this command — the honest remedy is a remediation task
-  directing the author to make it. An action rule is reported as unverified and never flagged: a
+  missing statement is never invented by this command — the honest remedy is a remediation task
+  directing the author to make it. The one exception is an obligation this run's own amendment
+  satisfies: where the gap report supplies the content and the run will write it where the rule
+  names, the rule is met by that amendment rather than flagged, because a rule asking for a route to
+  be declared in the plan describes exactly the edit the run is already making. An action rule is
+  reported as unverified and never flagged: a
   claim is not a verification, so a plan saying nothing, a plan claiming coverage, and a list that
   omits one route are equally unverified.
 - **A target table in the impact map, and counts.** 4.1 said to amend "the `FR-XXX` that states the
   changed capability, or add one", which is a judgment made silently while writing; the same input
-  could land on a different entry twice. The map now carries one row per normalized item naming the
-  target it will amend — by ID, else by quoted heading or opening phrase, never by a bare section
-  name — and Step 4 writes exactly that table. The counts make a zero legible as "examined and found
+  could land on a different entry twice. The map now carries one row per item-artifact pair naming
+  the target it will amend — by ID, else by quoted heading or opening phrase, never by a bare section
+  name — and Step 4 writes exactly that table. `tasks.md` takes no rows, since a remediation task is
+  always new and has no existing entry to preview. The counts make a zero legible as "examined and found
   nothing to amend" rather than "did not look".
 - **A test fixture** (`tests/fixture/`): a minimal spec-kit project with deliberate traps and
   pre-registered expectations, executed by a fresh agent given only the command and its own working
