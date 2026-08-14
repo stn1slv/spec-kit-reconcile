@@ -5,6 +5,52 @@ All notable changes to the Reconcile extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-08-14
+
+Everything here came from **executing** the command against the test fixture v1.2.0 shipped, in
+five runs by five fresh agents. v1.2.0 had already been through three review rounds with three
+reviewers each — 64 findings, all applied — and none of those rounds found the first three items
+below. The round is recorded in `tests/fixture/BASELINE-v1.2.0.md`.
+
+### Fixed
+
+- **The impact map's row unit is the target, not the item-artifact pair.** All five runs hit this,
+  each from a different direction: an item that adds a route and amends the testing strategy in one
+  file (one row cannot be both `Amend` and `Add`), an item reaching an artifact a scope modifier
+  excluded (the formula subtracted only withheld and no-target rows), a withheld item whose row had
+  no defined cells, and — the ordinary case — an item touching routing, contracts and testing
+  together, which the old unit could not represent at all. Every runner produced correct edits and a
+  different published number, which is precisely what the counts exist to prevent. A row is now one
+  entry in one artifact, every row carries exactly one of four actions, and `K + N + S + W + Z = R`
+  holds exactly with every count but the item total in the same unit.
+- **`Wiring & Navigation` is defined rather than illustrated.** The category was three examples, and
+  it silently decides whether 4.3 rule 4's integration test is mandatory. Two runners split on it:
+  a missing table column was read as Logic/UX and produced no test, while a progress component that
+  never mounts was read as Wiring and produced one. The test is now **reachability of something that
+  exists** — the capability is in the shipped code and a user cannot get to it — with both cases
+  worked through, and a tie-break that classifies as Wiring when genuinely undecidable, because an
+  unnecessary test costs a task and a missing one costs the guarantee.
+- **Revision notes no longer nest inside whatever section happens to be last.** The form was fixed at
+  `###` and the placement at "the bottom of the file", which makes the note render as a subsection of
+  `## Assumptions` in a spec and `## Constitution Check` in a plan. The notes now live under a single
+  `## Revisions` heading, and an artifact carrying bare entries from an older version has that heading
+  added above them — the one retroactive edit this command makes, permitted because it moves no note,
+  changes no text and changes no date.
+
+### Testing
+
+- Case A's A1 expectation was **wrong** and is corrected. It asserted that the drift adds a client
+  route rather than an API route, so no constitution finding should appear; two runners independently
+  flagged A1 anyway, and they were right, because the gap report's own words say the backend exists
+  while the plan declares no such route. Review had already warned that this trap graded an inference,
+  and the first fix asserted the opposite inference instead of removing the dependency on one — which
+  turned an ambiguous expectation into a confidently wrong one that scored correct runs as failures.
+- 003's fixture spec is made self-consistent: its revision note claimed to have reconciled a cancel
+  affordance that `FR-003` never mentioned. `FR-003` now states what the note says was written.
+- Three traps registered for the rules above (R17 revision-note nesting, R18 the target row unit,
+  R19 the reachability test), with 003's two artifacts deliberately carrying the old and new note
+  forms so the retroactive-add rule is exercised on one and not the other.
+
 ## [1.2.0] - 2026-08-13
 
 Most of this release is the sibling `spec-kit-archive` extension's findings applied here. Both

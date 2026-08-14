@@ -161,7 +161,7 @@ Classify only; Step 4 owns which artifact each category is written to.
 
 | Category | Typical Issues |
 |----------|----------------|
-| **Wiring & Navigation** | Missing routes, menu items, sidebar links |
+| **Wiring & Navigation** | Missing routes, menu items, sidebar links; anything shipped that a user cannot reach |
 | **Contracts** | API field mismatches, missing headers |
 | **Requirements** | Shipped code adds, drops or redefines a capability |
 | **Behavior** | Implementation behaves differently than planned |
@@ -169,6 +169,17 @@ Classify only; Step 4 owns which artifact each category is written to.
 | **Outcomes & Assumptions** | A measurable target or a stated assumption no longer holds |
 | **Test Coverage** | New wiring/navigation without verification |
 | **Logic/UX** | Success toasts missing, error handling gaps |
+
+**The Wiring & Navigation boundary decides whether a test is mandatory, so it is defined rather than illustrated.** 4.3 rule 4 makes an integration test compulsory for this category and optional for every other, so the classification changes what lands on disk and cannot rest on which of the examples above a drift resembles.
+
+**The test is reachability of something that exists.** A drift is Wiring & Navigation when the capability is present in the shipped code and a user cannot get to it — no route, no link, a screen or control that never renders, a control rendered but wired to nothing. It is **not** Wiring & Navigation when the capability is absent: a column the list never had, a rule never implemented, a toast never written. Those are Requirements, Behavior or Logic/UX, because there is nothing to reach.
+
+Two worked cases, because this is where careful readers split:
+
+- *"The progress component never mounts for uploads under 1 MB"* — the component exists and the user cannot reach it. **Wiring & Navigation**; the integration test is mandatory.
+- *"The task list needs an owner column, which was never specified"* — the column does not exist at all. **Requirements**; no test is compelled, though one may still be written.
+
+**When you genuinely cannot decide, classify it as Wiring & Navigation.** An unnecessary integration test costs one task; a missing one costs the verification this category exists to guarantee.
 
 ### 1.1 Constitution Check (three shapes)
 
@@ -259,29 +270,41 @@ This table's rows are **artifacts**. An item withheld by an unresolved conflict 
 
 **Then the target table.** It records *which existing item each amendment will land on* before any edit, rather than leaving that choice implicit in the writing — the same choice made twice can otherwise come out two different ways. Identify each target by the **citation ladder** defined in Step 4.
 
-**One row per item-artifact pair**, not per item: a single remediation item that reaches both `spec.md` and `plan.md` takes two rows, because it amends a different entry in each and each of those choices needs its own preview. An item that reaches no artifact takes exactly one row, with `—` for the artifact and `None` for the action. An item withheld by an unresolved conflict takes one row with the action `Withheld`.
+**One row per target.** A target is one entry in one artifact that this run will write, so a remediation item takes as many rows as it has targets: two entries in `spec.md` and one in `plan.md` is three rows. This is finer than "one row per artifact" because the table exists to preview *each amendment decision*, and an item that touches routing, contracts and testing in one plan has made three of them. **Every row carries exactly one action** — that is the point of the unit, and it is what makes the counts below reproducible.
 
-**`tasks.md` takes no rows here.** This table previews *which existing entry an amendment lands on*, and a remediation task is always new, so it has no target to preview; the Sync Impact Map above already names the tasks this run will generate. `R`, `K` and `N` therefore count rows against `spec.md` and `plan.md` only.
+Four actions exist, and each row takes exactly one:
 
-**An item whose only output is a remediation task takes no row**, and is **not** counted in `Z`: it reached an artifact, just not one this table previews. `Z` is for an item that reaches nothing at all.
+| Action | When | Artifact / Target cells |
+|---|---|---|
+| `Amend` | the row lands on an existing entry | named, by the citation ladder |
+| `Add` | the row creates a new entry | artifact named, target `*new*` |
+| `Skipped` | a scope modifier excluded the artifact this target sits in | both named, so `## Scoping` can say what was left out |
+| `Withheld` | an unresolved 1.1 conflict withheld the item | both `—` |
+
+Two items take **exactly one row regardless of how much they would have touched**, because nothing about them is being previewed: an item **withheld** by a conflict, and an item that reaches **no target at all**. The second takes `—` for artifact and target and the action `None`.
+
+**`tasks.md` takes no rows here.** This table previews which existing entry an amendment lands on; a remediation task is always new and has no entry to preview, and the Sync Impact Map above already names every task this run will generate. An item whose only output is a task therefore has no row, and is **not** counted as reaching no target — it reached one, just not one this table previews. Say so in the counts note when it happens.
 
 ```markdown
 ### Targets
 | # | Item (from the gap report) | Category | Artifact | Target | Action |
 |---|---------------------------|----------|----------|--------|--------|
 | 1 | Settings screen unreachable | Wiring & Navigation | `plan.md` | Routing & Navigation → "GET /settings" | Amend |
-| 2 | Settings screen unreachable | Wiring & Navigation | `spec.md` | FR-014 | Amend |
-| 3 | org_id header now required | Contracts | `spec.md` | *new* | Add |
-| 4 | org_id header now required | Contracts | `plan.md` | Integration Contracts → "Settings API" | Amend |
+| 2 | Settings screen unreachable | Wiring & Navigation | `plan.md` | Testing Strategy → "Integration tests for the three task routes" | Amend |
+| 3 | Settings screen unreachable | Wiring & Navigation | `spec.md` | FR-014 | Amend |
+| 4 | org_id header now required | Contracts | `spec.md` | *new* | Add |
+| 5 | org_id header now required | Contracts | `plan.md` | Integration Contracts → "Settings API" | Amend |
 ```
 
-**State the counts** below the table, and **state the unit of each**, because a number whose unit is guessed is a number two runs will disagree on:
+Rows 1 and 2 are the same item in the same artifact, landing on two different entries. That is the ordinary case — a new endpoint usually touches routing, contracts and testing together — and it is why the unit is the target rather than the artifact.
+
+**State the counts** below the table. Every count except the first is in **rows**, so there is one unit boundary and it is stated once:
 
 ```
-normalized items: M (items); rows: R (item-artifact pairs); amending: K (rows); new: N (rows); reaching no artifact: Z (items); withheld: W (items)
+normalized items: M (items) — the rest count rows: targets R; amend K; add N; skipped S; withheld W; no target Z
 ```
 
-`K + N` counts rows and must equal `R` minus the rows for withheld items and for items reaching no artifact. `M` counts items, and every item is in exactly one of four states: it has one or more rows above; its only output is a remediation task; it reaches nothing (`Z`); or it was withheld (`W`). The two units are never added together. A zero must be legible as "examined and found nothing to amend", never as "did not look" — an artifact left unchanged is a finding about the drift, not an absence of work.
+`K + N + S + W + Z = R` exactly. `M` counts items and is never added to any of them; it can be larger than the row count (several items with no target) or smaller (one item with many targets), and neither is an error. A zero must be legible as "examined and found nothing to amend", never as "did not look" — an artifact left unchanged is a finding about the drift, not an absence of work.
 
 Step 4 writes exactly this table. An item that turns out to have no viable target is added as new and the divergence is named in the report.
 
@@ -317,12 +340,16 @@ Name every section created this way in the report — a new heading in someone's
 **Revision notes.** Their place and form are fixed, because later runs **read** them: the slug match above depends on finding one an earlier run wrote, and the `Items:` line is what makes a re-run amend the right entries instead of guessing from prose.
 
 ```markdown
+## Revisions
+
 ### Revision: Implementation Sync [YYYY-MM-DD] [Sync: slug]
 - Reason: [Summary of drift reconciled]
 - Items: [each entry this run amended or added, by the citation ladder]
 ```
 
-- Written at the **bottom** of `spec.md` and `plan.md`, after the last content section. Consecutive notes read **newest last**, so they read in run order.
+- **The notes live under a single `## Revisions` heading at the bottom of `spec.md` and `plan.md`**, created on first use, with each run's note a `### Revision: ...` entry inside it. The heading level matters: an unhosted `###` block appended to the bottom of a file renders as a **subsection of whatever section happens to be last** — `## Assumptions` in a spec, `## Constitution Check` in a plan — which is the opposite of "at the bottom", and makes the note read as part of a section it has nothing to do with.
+- **Where an artifact already carries bare `### Revision:` entries at the bottom** with no `## Revisions` heading above them, written before this rule existed, **add the heading above them**. This is the one retroactive edit this command makes, and it is permitted because it moves no note, changes no note's text and changes no date — it only stops every future note from nesting inside the last section. Say so in the report.
+- Consecutive notes read **newest last**, so they read in run order.
 - **Never rewrite an earlier note**, with one exception: the note carrying **this run's slug**, which is amended in place rather than duplicated. Its date records the first sync for that slug and is never updated, so a re-run that changes nothing leaves no diff.
 - Where the artifact already carries revision notes in some other place or form (an older `## Revision History` section, trailing comment lines), **leave them exactly where they are**, start this block anyway, and name the split under `## Outstanding Items` so a reader knows to look in both.
 - `tasks.md` gets no revision note: the `[Sync: ...]` tag on each task is the equivalent record.
@@ -393,7 +420,7 @@ Output the final report. Use **absolute paths** for all file references.
 | `/absolute/path/to/tasks.md` | Added [N] remediation tasks |
 
 ## Counts
-[The Step 3 counts line, reproduced with its units exactly as Step 3 defines it — `normalized items: M (items); rows: R (item-artifact pairs); amending: K (rows); new: N (rows); reaching no artifact: Z (items); withheld: W (items)` — plus any divergence between the target table and what was actually written. A zero here means examined and found nothing to amend.]
+[The Step 3 counts line, reproduced exactly as Step 3 defines it — that section owns the format, and it is deliberately not restated here, because this template has now been left behind by a change to that line twice. Add any divergence between the target table and what was actually written. A zero here means examined and found nothing to amend.]
 
 ## Sources
 [Confirm every change came only from the Allowed Sources. Declare the read-only repository lookup whenever it happened, naming what it resolved. Name anything you needed but could not find, and state that you did not reconstruct it or invent a path. If you consulted git to verify your own writes rather than to obtain content, say so here.]

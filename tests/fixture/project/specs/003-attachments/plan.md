@@ -47,6 +47,8 @@ src/
 
 No violations.
 
+## Revisions
+
 ### Revision: Implementation Sync [2026-08-11] [Sync: upload-progress]
 - Reason: The progress indicator shipped without a cancel affordance, and the plan described neither.
 - Items: Routing & Navigation → "POST /api/v1/tasks/{id}/attachments"
