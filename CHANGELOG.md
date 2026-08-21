@@ -18,6 +18,22 @@ A pass over the current Spec Kit conventions, prompted by the 1.0.0 release. The
 - **The installed copy contains only the extension.** Added `.extensionignore`. Installing used to copy the whole repository, so `tests/fixture/` — a complete fake Spec Kit project, nested `.specify/` and `specs/` included — landed inside the user's own `.specify/extensions/`, along with `.git/` on a local install.
 - **The manifest declares `category`, `effect` and `homepage`**, which until now existed only in the community catalog entry, and registers an **optional `after_implement` hook** so `/speckit.implement` offers the reconcile step when it finishes. It stays a prompt: the command needs a gap report and will not invent one. The command frontmatter also declares `handoffs` to `speckit.implement` and `speckit.plan`, matching the report's own Next Step routing.
 
+### Fixed after multi-model review
+
+A four-model review (Opus, Fable, Gemini Pro, Gemini Flash) over the branch, plus a documentation audit against Spec Kit 1.0.1. Every upstream integration claim checked out; what follows is internal contradictions the reviewers found, three of which this repository's own `BASELINE-v1.2.1.md` had already named as over-corrections from the previous pass.
+
+- **The action list was short one action.** "Four actions exist, and each row takes exactly one" was followed by four rows, and the next paragraph then required a fifth, `None`, for a no-target row — the action the `Z` count counts. An agent reading the table as closed could not produce that row at all, which made `Z` permanently 0 and the rule that defines it unreachable. `None` is now in the table.
+- **`Add` versus `Amend` is decided, and the example obeys it.** The action table said `Add` creates a new entry while the worked example marked a route the plan lacks as `Amend`; two runners published `amend 3; add 2` and `amend 4; add 1` for identical edits. The rule is now explicit — a new entry inside an existing section is `Add`, because the separator is the entry and not the section — and the example row was corrected to match.
+- **The counts identity named the wrong cause.** "`M` can be larger than the row count (several items with no target)" cannot happen, since a no-target item takes exactly one row. The case that makes `M` larger is an item whose only output is a remediation task, which takes none. As written the two statements disagreed, and reconciling them invited the reading that breaks `Z`.
+- **Wiring & Navigation covers a second clause.** The reachability test alone could not classify a route that ships, works, and is undeclared in the plan — the fixture's own Case H — so a run following the rule was graded a miss by an expectation that predated it. The category now has two clauses, reachability and undeclared routing, and the worked examples no longer duplicate the fixture's gap reports, which had reduced that trap to matching the command's own wording.
+- **The resolver's three filenames are given rather than guessed.** Only the bash form was shown; the Python file is `resolve_template.py` with an underscore, and a guessed `resolve-template.py` fails silently into the direct-read fallback, defeating the fix. `plan-template` is named too, since the missing-section rule covers `plan.md`.
+- **Block-allocated IDs have no undefined branches.** A task landing in `## Remediation: Gaps` belongs to no phase and so had no block, which is the common case on such a file, and a full block had no overflow rule. Both now take the next unused block.
+- **Retirement markers have a recognition test** as precise as the bugfix markers beside them: upper-case, attached to the entry as an annotation, and prose when ambiguous — because a false marker silently drops an amendment.
+- **The counts note has a defined slot** (a second line beginning `note:`), the counts line's appearance in both Step 3 and Step 5 is now stated as a deliberate preview/outcome pair whose disagreement is itself the divergence to report, and the `Skipped` action no longer contradicts a target definition that said "will write".
+- **`specify extension update` does not work here and the README no longer claims it does.** The community catalog is discovery-only by design (`install_allowed: false`), so `update` skips every entry in it; `--from` with an explicit URL is the only supported upgrade path.
+- **The `after_implement` hook prompt states the required arguments.** An optional hook renders "To execute" with no argument slot, so a user following it literally hit `ERROR: No feature spec directory provided`.
+- Fixture: a `SUPERSEDED by FR-005` trap in 003 (R23) grades the redirect rule, which was shipping ungraded; Case E now grades the negative half of R19; and the block-allocation and resolves-to-nothing branches are recorded under `## Registered gaps` rather than left to look covered.
+
 ### Added
 
 - **Retirement and supersession markers are read, never reversed.** Section 1.2 covered a bugfix extension's annotations; it now covers the `RETIRED` / `SUPERSEDED by [ID]` / `CANCELLED` markers a requirement-change command leaves behind, and is renamed to **Annotations left by other commands**. A retired entry is never revived, a superseded one redirects the amendment to its replacement, and a cancelled task is neither edited nor reused — each is reported under `## Outstanding Items` instead. On a project that has never run such a command the rule applies to nothing.
@@ -41,7 +57,7 @@ The fixes below came from **executing** the command against the test fixture v1.
   no defined cells, and — the ordinary case — an item touching routing, contracts and testing
   together, which the old unit could not represent at all. Every runner produced correct edits and a
   different published number, which is precisely what the counts exist to prevent. A row is now one
-  entry in one artifact, every row carries exactly one of four actions, and `K + N + S + W + Z = R`
+  entry in one artifact, every row carries exactly one of five actions, and `K + N + S + W + Z = R`
   holds exactly with every count but the item total in the same unit.
 - **`Wiring & Navigation` is defined rather than illustrated.** The category was three examples, and
   it silently decides whether 4.3 rule 4's integration test is mandatory. Two runners split on it:

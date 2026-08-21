@@ -36,7 +36,11 @@ To upgrade an existing installation, add `--force` — without it the CLI refuse
 specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.2.1.zip --force
 ```
 
-Once the extension is listed in the community catalog at this version, `specify extension update reconcile` does the same thing without the URL.
+`specify extension update` does **not** work for this extension, and will not in future: the community catalog is deliberately discovery-only (`install_allowed: false`), so `update` skips everything in it rather than pulling unvetted third-party code. `--from` with an explicit URL is the supported upgrade path. To find the URL without leaving the CLI:
+
+```bash
+specify extension info reconcile   # prints a "Candidate archive" URL for review
+```
 
 Requires Spec Kit **0.16.2 or newer**: the command resolves templates through the override stack that release introduced, so an older CLI would read the base template and ignore any preset layered over it.
 
@@ -65,7 +69,7 @@ Several modifiers combine as a union: `--spec-only --tasks-only` writes both and
 
 ## How this differs from `/speckit.converge` and `/speckit.analyze`
 
-Three commands sit near this one, and they take opposite views of which side of the gap is wrong.
+Two core commands sit near this one, and the three take different views of which side of the gap is wrong.
 
 | Command | Treats as true | Reads | Writes |
 |---|---|---|---|

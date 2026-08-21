@@ -100,7 +100,12 @@ Everything you write into the feature's artifacts must come from the sources bel
   ```
   ../../scripts/bash/resolve-template.sh spec-template --json
   ```
-  Use the `powershell` or `python` sibling when this project's script variant is one of those — the runtime the `{SCRIPT}` invocation above already names. If the resolver is absent or fails, fall back to reading `.specify/templates/` directly and **say so under `## Sources`**, because the fallback can be wrong on a project that layers templates.
+  Use the sibling matching this project's script variant — the runtime the `{SCRIPT}` invocation above already names. **The three filenames do not follow one pattern, so they are given rather than guessed**, and a guessed name fails silently into the fallback below:
+  - bash — `../../scripts/bash/resolve-template.sh <name> --json`
+  - powershell — `../../scripts/powershell/resolve-template.ps1 <name> -Json`
+  - python — `../../scripts/python/resolve_template.py <name> --json`, run through the same interpreter prefix `{SCRIPT}` uses (note the **underscore**; only the Python file spells it that way)
+
+  The template name carries **no `.md` suffix**: `spec-template`, and `plan-template` when 4.2 creates a plan section, since Step 4's missing-section rule covers both artifacts. If the resolver is absent or fails, fall back to reading `.specify/templates/` directly and **say so under `## Sources`**, because the fallback can be wrong on a project that layers templates.
 - The output of `{SCRIPT}`
 
 The step numbers above are **descriptive, not restrictive**. This list bounds *which files* you may take content from, never *which step* may read one.
@@ -185,12 +190,18 @@ Classify only; Step 4 owns which artifact each category is written to.
 
 **The Wiring & Navigation boundary decides whether a test is mandatory, so it is defined rather than illustrated.** 4.3 rule 4 makes an integration test compulsory for this category and optional for every other, so the classification changes what lands on disk and cannot rest on which of the examples above a drift resembles.
 
-**The test is reachability of something that exists.** A drift is Wiring & Navigation when the capability is present in the shipped code and a user cannot get to it — no route, no link, a screen or control that never renders, a control rendered but wired to nothing. It is **not** Wiring & Navigation when the capability is absent: a column the list never had, a rule never implemented, a toast never written. Those are Requirements, Behavior or Logic/UX, because there is nothing to reach.
+**Two things put a drift in this category, and either one is enough.**
 
-Two worked cases, because this is where careful readers split:
+1. **Something that exists cannot be reached.** The capability is present in the shipped code and a user cannot get to it — no route, no link, a screen or control that never renders, a control rendered but wired to nothing.
+2. **A routing surface exists in the code and is undeclared in the artifacts.** A route, endpoint or navigation entry that ships but that `plan.md` never declares is unverified routing, which is the thing this category exists to force a test for. It does not matter that a user can reach it today; nothing records that it should stay reachable.
 
-- *"The progress component never mounts for uploads under 1 MB"* — the component exists and the user cannot reach it. **Wiring & Navigation**; the integration test is mandatory.
-- *"The task list needs an owner column, which was never specified"* — the column does not exist at all. **Requirements**; no test is compelled, though one may still be written.
+It is **not** Wiring & Navigation when the capability is simply absent and no routing surface is involved: a field the form never had, a rule never implemented, a message never written. Those are Requirements, Behavior or Logic/UX, because there is nothing to reach and nothing routing to verify.
+
+Three worked cases, because this is where careful readers split:
+
+- *"The export button is on screen but its handler was never bound"* — the control exists and reaches nothing. **Wiring & Navigation** by clause 1; the integration test is mandatory.
+- *"We shipped `POST /api/v1/exports`, which the plan never mentions"* — reachable today, undeclared in the artifacts. **Wiring & Navigation** by clause 2; the integration test is mandatory.
+- *"Invoices need a currency field, which was never specified"* — the field does not exist and no route is involved. **Requirements**; no test is compelled, though one may still be written.
 
 **When you genuinely cannot decide, classify it as Wiring & Navigation.** An unnecessary integration test costs one task; a missing one costs the verification this category exists to guarantee.
 
@@ -239,6 +250,8 @@ This command is not the only writer of these three files. A bugfix extension pat
 - Struck text with neither a marker nor a replacement is not a patch artifact you can interpret. Leave it exactly as it stands and name it under `## Outstanding Items`.
 
 **Retirement and supersession markers.** A command that changes a requirement rather than reconciling one marks entries `RETIRED`, `SUPERSEDED by [ID]`, or `CANCELLED` instead of deleting them, precisely so the history stays readable. Where an artifact carries such markers, read them as follows. Where it carries none — which is every project that has never run such a command — this paragraph applies to nothing and changes no behaviour.
+
+**What counts as a marker**, stated as precisely as the bugfix markers above, because these rules can suppress an amendment entirely. A marker is the bare word `RETIRED`, `CANCELLED`, or `SUPERSEDED by [ID]`, **upper-case**, appearing in the entry's own line or in a parenthetical or trailing clause attached to it — `**RETIRED** — reason`, `(CANCELLED — reason)`, `SUPERSEDED by FR-021` are all markers. Two things are **not** markers and change nothing: the same words in lower or mixed case, and any occurrence inside the entry's descriptive prose rather than attached to the entry as an annotation ("the job retires stale sessions" is requirement text). When you cannot tell an annotation from prose, treat it as **prose** and name the ambiguity under `## Outstanding Items` — a false marker silently drops an amendment, while a missed one merely leaves an entry to be amended normally.
 
 - A requirement, scenario or criterion marked **`RETIRED`** is a decision that the capability is gone. It is never amended and never revived, not even when the gap report describes drift that appears to reach it: reviving it would silently reverse the retirement. Reconcile the drift against a live entry if one exists, otherwise add a new one, and name the retired entry under `## Outstanding Items` so the author can see what the report seemed to be pointing at.
 - An entry marked **`SUPERSEDED by [ID]`** is not the target — the entry that `[ID]` names is. Resolve it by the citation ladder and amend that one. When `[ID]` resolves to nothing, amend neither, and name the pair under `## Outstanding Items`; guessing which entry inherited the meaning is exactly the judgment a superseded marker exists to remove.
@@ -293,26 +306,29 @@ This table's rows are **artifacts**. An item withheld by an unresolved conflict 
 
 **Then the target table.** It records *which existing item each amendment will land on* before any edit, rather than leaving that choice implicit in the writing — the same choice made twice can otherwise come out two different ways. Identify each target by the **citation ladder** defined in Step 4.
 
-**One row per target.** A target is one entry in one artifact that this run will write, so a remediation item takes as many rows as it has targets: two entries in `spec.md` and one in `plan.md` is three rows. This is finer than "one row per artifact" because the table exists to preview *each amendment decision*, and an item that touches routing, contracts and testing in one plan has made three of them. **Every row carries exactly one action** — that is the point of the unit, and it is what makes the counts below reproducible.
+**One row per target.** A target is one entry in one artifact this run **considered writing**, so a remediation item takes as many rows as it has targets: two entries in `spec.md` and one in `plan.md` is three rows. This is finer than "one row per artifact" because the table exists to preview *each amendment decision*, and an item that touches routing, contracts and testing in one plan has made three of them. **Every row carries exactly one action** — that is the point of the unit, and it is what makes the counts below reproducible.
 
-Four actions exist, and each row takes exactly one:
+**Five actions exist, and each row takes exactly one.** The list is closed: every row in the table is one of these, and `None` is as real an action as the other four — it is what the `Z` count counts.
 
 | Action | When | Artifact / Target cells |
 |---|---|---|
-| `Amend` | the row lands on an existing entry | named, by the citation ladder |
-| `Add` | the row creates a new entry | artifact named, target `*new*` |
+| `Amend` | the row changes the text of an **existing entry** | entry named, by the citation ladder |
+| `Add` | the row creates a **new entry** | artifact named; target is the section it lands in plus `*new*`, or `*new*` alone when the section is itself new |
 | `Skipped` | a scope modifier excluded the artifact this target sits in | both named, so `## Scoping` can say what was left out |
 | `Withheld` | an unresolved 1.1 conflict withheld the item | both `—` |
+| `None` | the item reaches no target at all | both `—` |
 
-Two items take **exactly one row regardless of how much they would have touched**, because nothing about them is being previewed: an item **withheld** by a conflict, and an item that reaches **no target at all**. The second takes `—` for artifact and target and the action `None`.
+**`Add` and `Amend` are separated by the entry, not by the section.** A new bullet, requirement or route inside a section that already exists is still a **new entry**, so it is `Add` — the section being old changes nothing. `Amend` is only for a row that rewrites an entry the citation ladder can already name. This is the distinction the counts turn on, and reading "the section exists, so it is an amendment" is what makes two runs publish different numbers for identical edits.
 
-**`tasks.md` takes no rows here.** This table previews which existing entry an amendment lands on; a remediation task is always new and has no entry to preview, and the Sync Impact Map above already names every task this run will generate. An item whose only output is a task therefore has no row, and is **not** counted as reaching no target — it reached one, just not one this table previews. Say so in the counts note when it happens.
+Two items take **exactly one row regardless of how much they would have touched**, because nothing about them is being previewed: an item **withheld** by a conflict, and an item that reaches **no target at all**.
+
+**`tasks.md` takes no rows here.** This table previews which existing entry an amendment lands on; a remediation task is always new and has no entry to preview, and the Sync Impact Map above already names every task this run will generate. An item whose only output is a task therefore has no row, and is **not** counted as reaching no target — it reached one, just not one this table previews. When that happens, say so on a **second line directly below the counts line**, beginning `note:` — that line is the only free text permitted there, and the counts line itself always keeps its fixed shape.
 
 ```markdown
 ### Targets
 | # | Item (from the gap report) | Category | Artifact | Target | Action |
 |---|---------------------------|----------|----------|--------|--------|
-| 1 | Settings screen unreachable | Wiring & Navigation | `plan.md` | Routing & Navigation → "GET /settings" | Amend |
+| 1 | Settings screen unreachable | Wiring & Navigation | `plan.md` | Routing & Navigation → *new* | Add |
 | 2 | Settings screen unreachable | Wiring & Navigation | `plan.md` | Testing Strategy → "Integration tests for the three task routes" | Amend |
 | 3 | Settings screen unreachable | Wiring & Navigation | `spec.md` | FR-014 | Amend |
 | 4 | org_id header now required | Contracts | `spec.md` | *new* | Add |
@@ -321,15 +337,17 @@ Two items take **exactly one row regardless of how much they would have touched*
 
 Rows 1 and 2 are the same item in the same artifact, landing on two different entries. That is the ordinary case — a new endpoint usually touches routing, contracts and testing together — and it is why the unit is the target rather than the artifact.
 
-**State the counts** below the table. Every count except the first is in **rows**, so there is one unit boundary and it is stated once:
+Row 1 is the case the rule above decides: the plan has a `Routing & Navigation` section but no entry for this route, so the row **creates** an entry and is `Add`, with the section named beside `*new*`. Row 2 is the contrast — the Testing Strategy entry already exists and its text changes, so it is `Amend`. Row 4 adds a requirement to `spec.md` where no section is named because the entry is a bare new `FR-###`.
+
+**State the counts** below the table. Every count except the first is in **rows**, so there is one unit boundary and it is stated once. This line is printed **twice per run, by design**: here as the preview, and again in Step 5 as the outcome. They are not a duplicate — a difference between them *is* the divergence Step 5 has to report, and a run whose two lines disagree without saying why has hidden the one thing the preview exists to expose:
 
 ```
 normalized items: M (items) — the rest count rows: targets R; amend K; add N; skipped S; withheld W; no target Z
 ```
 
-`K + N + S + W + Z = R` exactly. `M` counts items and is never added to any of them; it can be larger than the row count (several items with no target) or smaller (one item with many targets), and neither is an error. A zero must be legible as "examined and found nothing to amend", never as "did not look" — an artifact left unchanged is a finding about the drift, not an absence of work.
+`K + N + S + W + Z = R` exactly. `M` counts items and is never added to any of them; it can be larger than the row count (items whose only output is a remediation task, which take no row at all) or smaller (one item with many targets), and neither is an error. **An item reaching no target is not one of those cases** — it takes exactly one `None` row, so it leaves `M` and `R` in step. A zero must be legible as "examined and found nothing to amend", never as "did not look" — an artifact left unchanged is a finding about the drift, not an absence of work.
 
-Step 4 writes exactly this table. An item that turns out to have no viable target is added as new and the divergence is named in the report.
+Step 4 writes exactly this table. Where Step 4 discovers **at write time** that a target previewed as `Amend` is not viable after all, it adds a new entry instead and names the divergence in the report; that is a preview that turned out wrong, and it is not the same thing as the `None` row above, which records an item that reached no target when the preview was made.
 
 ---
 
@@ -354,7 +372,7 @@ When the slug is already present in the artifact you are writing, update what th
 
 A re-run that finds everything already applied is a valid outcome. Report it and change nothing.
 
-**A section the drift reaches but the artifact lacks** is created, in the position the project's own template puts it — `## Assumptions` after the Success Criteria **section**, matching `spec-template`'s order, and after that section's content rather than immediately after its heading line. Templates are readable for exactly this, per Allowed Sources, and that section also states **how** to read one: through the resolver, so a preset that reorders the sections is honoured rather than silently overridden by the base file.
+**A section the drift reaches but the artifact lacks** is created, in the position the project's own template puts it — `## Assumptions` after the Success Criteria **section**, matching `spec-template`'s order, and after that section's content rather than immediately after its heading line. **This rule covers `plan.md` as well as `spec.md`**; resolve `plan-template` for a plan section exactly as `spec-template` is resolved for a spec one. Templates are readable for exactly this, per Allowed Sources, and that section also states **how** to read one: through the resolver, so a preset that reorders the sections is honoured rather than silently overridden by the base file.
 
 **When the artifact renames its sections, map by role, not by name.** 4.1 already requires following the project's own headings, so a spec whose Success Criteria section is called `## How We'll Know It Works` puts the new section **after that section's content, before the next heading of equal or higher level** — after the section, never immediately after its heading line, which would nest the new section inside it. Match on what a section is *for*, never on its wording. When no section in the artifact plays the role the template's neighbour plays, append the new section at the end of the file and say so in the report, so the placement is a stated choice rather than a silent one.
 
@@ -418,7 +436,9 @@ Use the user story tag the task belongs to; omit it for tasks landing in `## Rem
 **Rules for Tasks**:
 1. **Increment IDs**: Never reuse an ID and never renumber one. **Continue the allocation convention the file already uses** rather than assuming a dense sequence. Read the existing IDs and follow what you find:
    - **Dense and sequential** (`T001`, `T002`, `T003`) — the common case: start from the highest `T###` plus one.
-   - **Allocated in blocks** (`T1000`, `T1010`, … then `T2000`) — a convention some projects adopt so an insertion never forces a renumber: take the next free slot **inside the block of the phase the task lands in**, not the global maximum, which would put the task inside a later phase's block.
+   - **Allocated in blocks** (`T1000`, `T1010`, … then `T2000`) — a convention some projects adopt so an insertion never forces a renumber: take the next free slot **inside the block of the phase the task lands in**, not the global maximum, which would put the task inside a later phase's block. Two branches this leaves open, both decided here:
+     - **A task landing in `## Remediation: Gaps` belongs to no phase and so has no block.** Open the next unused block above every block in use — the next round thousand after the highest ID present — and allocate inside it. Every remediation task on a block-allocated file takes this path, so it is the common case, not the edge one.
+     - **A block with no free slot** takes the next unused block, by the same rule. Never spill into the following block, which belongs to another phase.
 
    Read the ID width from the file too. `T###` is the usual form, but nothing guarantees three digits, so match on `T` followed by digits rather than on exactly three of them, and write new IDs at the width the file already uses. Every ID present counts toward "highest", including tasks that are completed, reopened, or cancelled — a retired ID is never handed out again.
 2. **Phase Placement**: Place new tasks under the **existing** phase heading that covers the affected user story. Core `tasks.md` files write these as `## Phase N: User Story N - [Title] (Priority: PN)`. Match the heading that is already in the file; never invent a new one from the `[USn]` task tag, which is an inline marker and not a heading. If no existing phase fits, create a `## Remediation: Gaps` section at the end.
@@ -449,7 +469,7 @@ Output the final report. Use **absolute paths** for all file references.
 | `/absolute/path/to/tasks.md` | Added [N] remediation tasks |
 
 ## Counts
-[The Step 3 counts line, reproduced exactly as Step 3 defines it — that section owns the format, and it is deliberately not restated here, because this template has now been left behind by a change to that line twice. Add any divergence between the target table and what was actually written. A zero here means examined and found nothing to amend.]
+[The counts line in the shape Step 3 defines — that section owns the format, and it is deliberately not restated here, because this template has now been left behind by a change to that line twice. These are the **outcome** counts, covering what was actually written, where Step 3's were the preview. When the two lines differ, print both and name what moved between them; when they match, say so in one clause. A zero here means examined and found nothing to amend.]
 
 ## Sources
 [Confirm every change came only from the Allowed Sources. Declare the read-only repository lookup whenever it happened, naming what it resolved. Name anything you needed but could not find, and state that you did not reconstruct it or invent a path. If you consulted git to verify your own writes rather than to obtain content, say so here. When a section was created, say how the template was read — through the resolver, or by the direct-read fallback because the resolver was absent or failed.]
