@@ -1,0 +1,16 @@
+# Files that belong in the repository but not in an installed copy.
+# `specify extension add` copies the whole tree unless it is excluded here.
+
+# The fixture is a whole fake spec-kit project, nested .specify/ and specs/
+# included. Installing it under .specify/extensions/reconcile/ puts a second
+# set of feature directories inside the user's project.
+tests/
+
+# Local agent and tooling configuration.
+.claude/
+.codemie/
+.gitattributes
+
+# Installing from a local path (`--dev`, or `init --extension <path>`) copies
+# the tree verbatim, repository metadata included.
+.git/

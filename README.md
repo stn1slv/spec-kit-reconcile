@@ -18,7 +18,7 @@ This extension acts as the "Inner Loop" of the Double-Loop Parity framework: it 
 - **Safe to Re-run**: Tasks carry a `[Sync: ...]` tag and revision notes carry the same slug plus the list of items they touched, so a refined version of the same gap report updates the earlier result instead of duplicating it, and a re-run amends the same entries instead of re-finding them by prose. Idempotency is judged per artifact, so a scope-limited run is not mistaken for a completed one.
 - **Enforced Verification**: Automatically mandates integration test tasks for any discovered wiring or navigation gaps.
 - **Constitution compliance**: Checks the rules the drift actually reaches, in the three ways a MUST rule can fail. A **conflict** is a remediation item contradicting a rule; you are asked, and an unresolved one withholds *that item only* while the rest of the gap report is reconciled and the run completes. An **unmet obligation** is a rule requiring a statement the feature never makes — asked, never a reason to withhold anything, and never written for you, since a remediation task directing the author to make it is the honest remedy. An **action-requiring** rule ("all API routes MUST have automated tests") is reported as unverified and never flagged, because this command reads artifacts and cannot inspect a test run.
-- **Bugfix-aware**: Works alongside bugfix extensions that patch the same three files. Struck-through wording superseded by a patch is never restored, `**Bugfix**:` lines are left as metadata, and a task reopened by a bug is treated as incomplete but never repurposed.
+- **Aware of other writers**: Works alongside the other commands that patch the same three files. Struck-through wording superseded by a bugfix patch is never restored, `**Bugfix**:` lines are left as metadata, and a task reopened by a bug is treated as incomplete but never repurposed. Entries a revision marked `RETIRED`, `SUPERSEDED by [ID]` or `CANCELLED` are read the same way: the marker records a decision somebody already made, so the amendment lands on the live entry and the marked one is reported instead of revived.
 - **Actionable Reporting**: Absolute paths throughout, a per-finding constitution disposition, an explicit sources declaration, and a conditional "Next Step" that routes to `/speckit.archive.run` when the reconciled feature has already been archived.
 
 ## Installation
@@ -36,6 +36,10 @@ To upgrade an existing installation, add `--force` — without it the CLI refuse
 specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.2.1.zip --force
 ```
 
+Once the extension is listed in the community catalog at this version, `specify extension update reconcile` does the same thing without the URL.
+
+Requires Spec Kit **0.16.2 or newer**: the command resolves templates through the override stack that release introduced, so an older CLI would read the base template and ignore any preset layered over it.
+
 ## Usage
 
 Name the feature, then describe the drift in plain text:
@@ -50,12 +54,28 @@ The feature path is required and must resolve to exactly one existing directory;
 
 Re-running the same gap report is safe: it updates what it already wrote instead of appending a second set of tasks, and it never edits a task `/speckit.implement` has already marked complete.
 
+The extension also registers an **optional** `after_implement` hook, so `/speckit.implement` offers the reconcile step when it finishes. It is a prompt, never an automatic run: the command needs a gap report and will not invent one.
+
 You can optionally restrict the scope of the updates, placing the modifiers immediately after the feature path:
 - `--spec-only` — update only `spec.md`
 - `--plan-only` — update only `plan.md`
 - `--tasks-only` — update only `tasks.md`
 
 Several modifiers combine as a union: `--spec-only --tasks-only` writes both and nothing else. Modifiers are also still recognised as trailing tokens at the very end of the input, which is how earlier versions accepted them; that position is ambiguous when the report's own last words look like a flag, so the leading position is preferred and the run states its interpretation when it has to guess.
+
+## How this differs from `/speckit.converge` and `/speckit.analyze`
+
+Three commands sit near this one, and they take opposite views of which side of the gap is wrong.
+
+| Command | Treats as true | Reads | Writes |
+|---|---|---|---|
+| `/speckit.converge` (core) | the **artifacts** | spec, plan, tasks, plus the codebase | appends unbuilt work to `tasks.md`, append-only |
+| `/speckit.analyze` (core) | neither | spec, plan, tasks | nothing; it reports inconsistency |
+| `/speckit.reconcile.run` | the **shipped code**, as the gap report states it | spec, plan, tasks, the constitution | amends `spec.md` and `plan.md`, appends remediation tasks |
+
+Use `converge` when the code lags a settled specification: it finds what was never built. Use this command for the mirror case, when the code shipped and the artifacts were left behind. They are not alternatives and a feature often needs both, in either order; this command never writes into a `## Phase N: Convergence` section, so their outputs stay separable.
+
+Where a requirement is *changing* rather than drifting — the product decided differently, and an existing requirement is now wrong — neither command is the right one. That is a revision, and this command will not revive an entry a revision has already marked `RETIRED` or `SUPERSEDED`.
 
 ## Workflow
 

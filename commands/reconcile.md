@@ -1,9 +1,18 @@
 ---
 description: "Reconcile implementation drift by updating the feature's own spec, plan, and tasks"
 argument-hint: "specs/###-feature-name [--spec-only|--plan-only|--tasks-only] <gap report>"
+handoffs:
+  - label: Implement Remediation
+    agent: speckit.implement
+    prompt: Execute the remediation tasks this run appended
+    send: true
+  - label: Review Plan
+    agent: speckit.plan
+    prompt: Review the architecture after the plan update
 scripts:
   sh: ../../scripts/bash/check-prerequisites.sh --json --paths-only
   ps: ../../scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly
+  py: ../../scripts/python/check_prerequisites.py --json --paths-only
 ---
 Act as the **Chief Software Architect** and **Implementation Auditor**.
 A feature implementation has landed, but "artifact drift" has been discovered (e.g., missing routes, updated behavior, or unlinked UI). Your goal is to **reconcile** this drift by surgically amending the feature's own specification, plan, and task artifacts.
@@ -45,7 +54,7 @@ The leading position is canonical and unambiguous; the trailing one is a compati
 
 **Validate everything else.** The first four checks are textual and run before Step 0; the fifth needs `REPO_ROOT` and so runs as soon as 0.1 has resolved it, still ahead of every write. **No file is written when any of them fails** — a rejected invocation must leave the repository exactly as it found it.
 
-1. **Empty input, or no feature at all.** If `$ARGUMENTS` is empty, **or the first token starts with `--`** (the feature path must come first, before any modifier), output `ERROR: No feature spec directory provided. Usage: /speckit.reconcile.run specs/###-feature-name [--scope-modifier] [gap report]` and stop.
+1. **Empty input, or no feature at all.** If `$ARGUMENTS` is empty, **or the first token starts with `--`** (the feature path must come first, before any modifier), output `ERROR: No feature spec directory provided. Usage: __SPECKIT_COMMAND_RECONCILE_RUN__ specs/###-feature-name [--scope-modifier] [gap report]` and stop.
 2. **More than one feature.** This check comes **before** the flag check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature. The checks key on **feature-shaped tokens** — a token whose path contains a `specs/###` segment in any form, with or without the trailing name (`specs/002-x`, `specs/001`, `../specs/002-x`, `/repo/specs/002-x`; a glob character may stand in for digits, as in `specs/00*`), or a bare feature number or name such as `007` or `007-invoice-settings`. A `specs/` path counts **anywhere** in the input. A **bare** feature reference counts only in the **leading region** — the first token, any modifiers, and the token immediately following them, which is where a second feature would be written if one were meant — and only when it carries the full `###-name` form (`002-notifications`). Two things follow, and both are deliberate: a bare **number** alone (`002`) counts only **beside a range marker whose other side is a feature reference** (the `008` in `specs/001 thru 008`), and a gap report that **opens** with a number is therefore safe (`specs/001-task-manager 404 errors now appear on the digest route`). Keying on the `###-name` form rather than on position alone is what makes that possible: the region has to include the first gap report token to catch `specs/001-task-manager 002-notifications …`, so the form is what separates a second feature from an ordinary opening word — digits inside later prose (`handle 404 errors`, `max 500 items`, `3 screens are unreachable`) are gap report, and so is ordinary punctuation (`double-checked?`, `billing/invoicing`, `*emphasis*`):
    - two or more feature-shaped tokens
    - a glob character (`*` or `?`) **inside a feature-shaped token** (`specs/00*`, `0??-export`)
@@ -56,12 +65,12 @@ The leading position is canonical and unambiguous; the trailing one is a compati
    ```
    ERROR: This command reconciles one feature per run — no ranges or globs.
    Run it once per feature:
-     /speckit.reconcile.run specs/001-first-feature [gap report]
-     /speckit.reconcile.run specs/002-second-feature [gap report]
+     __SPECKIT_COMMAND_RECONCILE_RUN__ specs/001-first-feature [gap report]
+     __SPECKIT_COMMAND_RECONCILE_RUN__ specs/002-second-feature [gap report]
    ```
    and stop.
 3. **Unrecognized flag.** A `--` token in the leading flag position that is not one of the three modifiers gets `ERROR: Unrecognized flag '[token]'. Supported: --spec-only, --plan-only, --tasks-only.` and stops the run. From the first non-flag token onward, a `--` word is gap report text.
-4. **No gap report.** If `$ARGUMENTS` holds nothing beyond a feature path and modifiers, output `ERROR: No gap report provided. Usage: /speckit.reconcile.run specs/###-feature-name [--scope-modifier] [gap report]` and stop. This command has nothing to reconcile without one; it never infers the drift from the code.
+4. **No gap report.** If `$ARGUMENTS` holds nothing beyond a feature path and modifiers, output `ERROR: No gap report provided. Usage: __SPECKIT_COMMAND_RECONCILE_RUN__ specs/###-feature-name [--scope-modifier] [gap report]` and stop. This command has nothing to reconcile without one; it never infers the drift from the code.
 5. **Ambiguous first token.** The first token must resolve to **exactly one** existing directory under `REPO_ROOT`. A numeric prefix expands only when the match is unique. If nothing matches, if the token names a file rather than a directory, or if more than one directory matches, output `ERROR: '[token]' does not resolve to exactly one feature directory` — listing the matches when there are several — and stop.
 
 One consequence of the ordering: rule 2 runs before the gap report is classified, so a `specs/...` path anywhere in the input is rejected as a second feature even when it was meant as description. Ordinary prose, punctuation, and numbers inside sentences are safe, as are ordinary source paths (`src/router/index.ts`), which are not feature-shaped. Refer to other features by name in prose ("the invoice feature") when the report must mention one.
@@ -87,7 +96,11 @@ Everything you write into the feature's artifacts must come from the sources bel
 - The **gap report** itself
 - The artifacts inside `FEATURE_DIR` — `spec.md`, `plan.md` and `tasks.md` fully; `data-model.md` for 4.1's Key Entities bullet, and `contracts/` for 4.2's Integration Contracts bullet
 - `.specify/memory/constitution.md` (0.2 and Step 1) and `.specify/memory/changelog.md` (0.2 and Step 5)
-- `.specify/templates/` — read-only, and for one thing only: the section names and section **order** a project's own templates define, which Step 4's missing-section rule needs. Never take content from a template
+- The project's **resolved templates** — read-only, and for one thing only: the section names and section **order** they define, which Step 4's missing-section rule needs. Never take content from a template. Obtain them by running the core resolver rather than by reading `.specify/templates/` directly, because a template is a **stack**, not a file: a project override, then each installed preset in registry-priority order, then the base. Reading the base file alone silently ignores every layer above it.
+  ```
+  ../../scripts/bash/resolve-template.sh spec-template --json
+  ```
+  Use the `powershell` or `python` sibling when this project's script variant is one of those — the runtime the `{SCRIPT}` invocation above already names. If the resolver is absent or fails, fall back to reading `.specify/templates/` directly and **say so under `## Sources`**, because the fallback can be wrong on a project that layers templates.
 - The output of `{SCRIPT}`
 
 The step numbers above are **descriptive, not restrictive**. This list bounds *which files* you may take content from, never *which step* may read one.
@@ -96,7 +109,7 @@ The step numbers above are **descriptive, not restrictive**. This list bounds *w
 
 **What a task may name is 4.3 rule 3's decision, and it is stated there and nowhere else.** This section bounds what you may *read*; when a path counts as derived and when a task is written without one lives in 4.3. It is deliberately not restated here — a rule written in two places is a rule that will eventually disagree with itself, which is how the two halves of this one came apart once already.
 
-**Take content from nowhere else.** Not from git history, `git log`, `git show`, stashes, other branches, or any file that was deleted or renamed. Not from ad-hoc notes files. Not from an agent memory or session store. Not from another feature's spec directory. Not from a `bugs/` report: a bug report is not a gap report, and a bugfix extension's own patch step is the sanctioned channel for its amendments (see **Bugfix annotations** in Step 1).
+**Take content from nowhere else.** Not from git history, `git log`, `git show`, stashes, other branches, or any file that was deleted or renamed. Not from ad-hoc notes files. Not from an agent memory or session store. Not from another feature's spec directory. Not from a `bugs/` report: a bug report is not a gap report, and a bugfix extension's own patch step is the sanctioned channel for its amendments (see **Annotations left by other commands** in Step 1).
 
 **This bounds content, not tooling.** Running `git status` or `git diff` to verify what you just wrote is fine. Reading git to *obtain* the drift, or to reconstruct an artifact's earlier contents, is not.
 
@@ -130,7 +143,7 @@ Use absolute paths for all file operations.
 
 **Validation**: Ensure `spec.md` and `plan.md` exist. If either is missing, stop with:
 > ⚠️ Missing required files in `FEATURE_DIR`. Expected: spec.md, plan.md.
-> Run `/speckit.specify` and `/speckit.plan` first.
+> Run `__SPECKIT_COMMAND_SPECIFY__` and `__SPECKIT_COMMAND_PLAN__` first.
 
 **Step 0 is a gate and writes nothing**, including `TASKS_FILE`. 4.3 creates that file when it needs it.
 
@@ -212,14 +225,24 @@ A MUST rule can fail in more than one way, matching the three records from 0.2. 
 
 **But distinguish a verdict from a statement of fact.** What that rule bars is treating the author's *opinion about compliance* as the answer. It does not bar the section from containing content a rule actually asks for. Where a MUST rule requires the feature to **state or record something**, and the Constitution Check is where the feature states it, that statement satisfies the obligation like any other. The test is what the sentence does: **"we checked and it is fine" is a verdict and closes nothing; "here is what we changed and why" is the record the rule demanded.**
 
-### 1.2 Bugfix annotations
+### 1.2 Annotations left by other commands
 
-A bugfix extension (such as `spec-kit-bugfix`) patches the same three files this command edits, and leaves markers behind. Read them as follows, so a reconciliation never undoes a patch:
+This command is not the only writer of these three files. A bugfix extension patches them, and a requirement-change command retires and supersedes entries in them. Both leave markers behind, and both are recording a decision somebody already made. **A marker is never an invitation to reopen the decision it records** — the amendment goes elsewhere, and the marker is reported rather than edited.
+
+(The markers below are unrelated to the `## Revisions` notes this command writes in Step 4. Those are this command's own record of what it synced; these are somebody else's record of what they decided.)
+
+**Bugfix markers.** A bugfix extension (the community `bugfix` extension, for instance) patches the same three files this command edits. Read its markers as follows, so a reconciliation never undoes a patch:
 
 - Text struck through with `~~...~~` counts as **superseded by a patch** when a `**Bugfix**:` marker or a live replacement wording sits in or beside the same entry. Treat the replacement as the current text. **Never restore struck wording while amending an entry**, and never carry it into a new one.
 - `**Bugfix**: [DATE] — [BUG-NNN] ...` lines are patch metadata, not requirement text. Leave them in place; do not amend them and do not treat them as the entry's content.
 - A task annotated `(reopened — BUG-NNN)` is **incomplete**, whatever its checkbox shows. It is therefore not "completed work" for the never-edit rule in Step 4 — but do not edit or repurpose it either, because it belongs to a bugfix cycle in progress. Append the remediation task and name the overlap under `## Outstanding Items`.
 - Struck text with neither a marker nor a replacement is not a patch artifact you can interpret. Leave it exactly as it stands and name it under `## Outstanding Items`.
+
+**Retirement and supersession markers.** A command that changes a requirement rather than reconciling one marks entries `RETIRED`, `SUPERSEDED by [ID]`, or `CANCELLED` instead of deleting them, precisely so the history stays readable. Where an artifact carries such markers, read them as follows. Where it carries none — which is every project that has never run such a command — this paragraph applies to nothing and changes no behaviour.
+
+- A requirement, scenario or criterion marked **`RETIRED`** is a decision that the capability is gone. It is never amended and never revived, not even when the gap report describes drift that appears to reach it: reviving it would silently reverse the retirement. Reconcile the drift against a live entry if one exists, otherwise add a new one, and name the retired entry under `## Outstanding Items` so the author can see what the report seemed to be pointing at.
+- An entry marked **`SUPERSEDED by [ID]`** is not the target — the entry that `[ID]` names is. Resolve it by the citation ladder and amend that one. When `[ID]` resolves to nothing, amend neither, and name the pair under `## Outstanding Items`; guessing which entry inherited the meaning is exactly the judgment a superseded marker exists to remove.
+- A task marked **`CANCELLED`** is neither completed work nor available work. Do not edit it and do not repurpose it. It **still counts** when finding the highest `T###`, because a cancelled ID is retired, never reused. Append the remediation task and name the overlap under `## Outstanding Items`.
 
 ---
 
@@ -326,12 +349,12 @@ Step 4 writes exactly this table. An item that turns out to have no viable targe
 
 When the slug is already present in the artifact you are writing, update what that earlier run wrote — the revision note's `Items:` line names exactly which entries those were — rather than appending beside it. Two limits on "update":
 
-- **Never edit a task marked `[X]` or `[x]`.** `/speckit.implement` marks completed work that way, and rewriting a finished task silently changes the record of what was done. If the refined report changes such a task, leave it and append a new one describing the remaining work — unless a later open task already carries this slug and covers that work, in which case it was appended on an earlier run and nothing more is needed. A task annotated `(reopened — BUG-NNN)` is not completed work (1.2), but it is not yours to edit either.
+- **Never edit a task marked `[X]` or `[x]`.** `__SPECKIT_COMMAND_IMPLEMENT__` marks completed work that way, and rewriting a finished task silently changes the record of what was done. If the refined report changes such a task, leave it and append a new one describing the remaining work — unless a later open task already carries this slug and covers that work, in which case it was appended on an earlier run and nothing more is needed. A task annotated `(reopened — BUG-NNN)` is not completed work (1.2), but it is not yours to edit either.
 - Never delete a task an earlier run created. If the refined report drops it, leave it in place and say so in the report; removing work items is the user's call.
 
 A re-run that finds everything already applied is a valid outcome. Report it and change nothing.
 
-**A section the drift reaches but the artifact lacks** is created, in the position the project's own template puts it — `## Assumptions` after the Success Criteria **section**, matching `spec-template.md`'s order, and after that section's content rather than immediately after its heading line. `.specify/templates/` is readable for exactly this, per Allowed Sources.
+**A section the drift reaches but the artifact lacks** is created, in the position the project's own template puts it — `## Assumptions` after the Success Criteria **section**, matching `spec-template`'s order, and after that section's content rather than immediately after its heading line. Templates are readable for exactly this, per Allowed Sources, and that section also states **how** to read one: through the resolver, so a preset that reorders the sections is honoured rather than silently overridden by the base file.
 
 **When the artifact renames its sections, map by role, not by name.** 4.1 already requires following the project's own headings, so a spec whose Success Criteria section is called `## How We'll Know It Works` puts the new section **after that section's content, before the next heading of equal or higher level** — after the section, never immediately after its heading line, which would nest the new section inside it. Match on what a section is *for*, never on its wording. When no section in the artifact plays the role the template's neighbour plays, append the new section at the end of the file and say so in the report, so the placement is a stated choice rather than a silent one.
 
@@ -390,11 +413,17 @@ If `TASKS_FILE` does not exist, create it now with a `## Remediation: Gaps` head
 
 Use the user story tag the task belongs to; omit it for tasks landing in `## Remediation: Gaps`, which belong to no story. The `[Sync: ...]` tag is always appended and holds this run's slug and nothing else (for example `[Sync: settings-nav-link]`), so the same key appears in every artifact and it is everything after `Sync: `.
 
-**Do not emit the `[P]` marker, and never strip it from a task you did not write.** In Spec-Kit it means "can run in parallel: different files, no dependencies", and `/speckit.implement` reads it to decide what to run together. A gap report cannot establish that a remediation is independent of the others, so omitting it on new tasks is always correct: they then run sequentially. Tasks written by `/speckit.tasks` carry it legitimately, and removing it would change how they execute.
+**Do not emit the `[P]` marker, and never strip it from a task you did not write.** In Spec-Kit it means "can run in parallel: different files, no dependencies", and `__SPECKIT_COMMAND_IMPLEMENT__` reads it to decide what to run together. A gap report cannot establish that a remediation is independent of the others, so omitting it on new tasks is always correct: they then run sequentially. Tasks written by `__SPECKIT_COMMAND_TASKS__` carry it legitimately, and removing it would change how they execute.
 
 **Rules for Tasks**:
-1. **Increment IDs**: Find the highest `T###` in `tasks.md`. Start new tasks from `max + 1`. Never reuse or renumber.
+1. **Increment IDs**: Never reuse an ID and never renumber one. **Continue the allocation convention the file already uses** rather than assuming a dense sequence. Read the existing IDs and follow what you find:
+   - **Dense and sequential** (`T001`, `T002`, `T003`) — the common case: start from the highest `T###` plus one.
+   - **Allocated in blocks** (`T1000`, `T1010`, … then `T2000`) — a convention some projects adopt so an insertion never forces a renumber: take the next free slot **inside the block of the phase the task lands in**, not the global maximum, which would put the task inside a later phase's block.
+
+   Read the ID width from the file too. `T###` is the usual form, but nothing guarantees three digits, so match on `T` followed by digits rather than on exactly three of them, and write new IDs at the width the file already uses. Every ID present counts toward "highest", including tasks that are completed, reopened, or cancelled — a retired ID is never handed out again.
 2. **Phase Placement**: Place new tasks under the **existing** phase heading that covers the affected user story. Core `tasks.md` files write these as `## Phase N: User Story N - [Title] (Priority: PN)`. Match the heading that is already in the file; never invent a new one from the `[USn]` task tag, which is an inline marker and not a heading. If no existing phase fits, create a `## Remediation: Gaps` section at the end.
+
+   **A `## Phase N: Convergence` heading is never a placement target.** `__SPECKIT_COMMAND_CONVERGE__` appends those sections and treats them as an append-only ledger of what it found; a remediation task written into one would read as convergence's own finding and would be indistinguishable from it on the next run. Skip such a heading when looking for a phase that fits, and fall through to `## Remediation: Gaps`.
 3. **Exact Paths**: Every task MUST include an exact file path where the change is needed. The path comes from the gap report, from `plan.md`'s project structure, or from the read-only repository lookup **Allowed Sources** permits — in that order of preference, and never from invention.
 
    **A task that creates a file names the file it will create.** Most remediation edits an existing file, but a new test or a new module does not exist yet, and "confirm the path exists" cannot apply to it. Such a path is **derived, not invented, when the directory it sits in is one the plan's Project Structure declares or the repository already contains** — `tests/integration/navigation.test.ts` is derived when `tests/integration/` exists; `src/services/settings.py` is invented when nothing declares `src/services/`.
@@ -423,7 +452,7 @@ Output the final report. Use **absolute paths** for all file references.
 [The Step 3 counts line, reproduced exactly as Step 3 defines it — that section owns the format, and it is deliberately not restated here, because this template has now been left behind by a change to that line twice. Add any divergence between the target table and what was actually written. A zero here means examined and found nothing to amend.]
 
 ## Sources
-[Confirm every change came only from the Allowed Sources. Declare the read-only repository lookup whenever it happened, naming what it resolved. Name anything you needed but could not find, and state that you did not reconstruct it or invent a path. If you consulted git to verify your own writes rather than to obtain content, say so here.]
+[Confirm every change came only from the Allowed Sources. Declare the read-only repository lookup whenever it happened, naming what it resolved. Name anything you needed but could not find, and state that you did not reconstruct it or invent a path. If you consulted git to verify your own writes rather than to obtain content, say so here. When a section was created, say how the template was read — through the resolver, or by the direct-read fallback because the resolver was absent or failed.]
 
 ## Path Resolution
 [`FEATURE_DIR` and how it was resolved. Note it when `{SCRIPT}` reported a different feature directory, or when the script failed and `REPO_ROOT` was derived by walking up from the argument. Otherwise "Resolved from argument".]
@@ -443,7 +472,7 @@ Output the final report. Use **absolute paths** for all file references.
 [On a re-run, list what was already present and left unchanged, or "Already applied; no changes".]
 
 ## Outstanding Items
-[Everything this run noticed and did not act on, in one place — the section formerly called `Outstanding Decisions`, widened. Any item withheld by an unresolved constitution conflict, with the rule it conflicts with and the recommendation to resolve it and re-run. Any remaining `NEEDS CLARIFICATION` markers. Sections created because the artifact lacked them, and any section appended at the end of a file because no template position could be mapped. Tasks written without a path because none resolved. Struck-through text left as it stands because it had neither a Bugfix marker nor a replacement, and any overlap with a task reopened by a bugfix cycle. Any revision notes found in another place or form, with the split named. Each action-requiring constitution rule reported as unverified, with what would settle it — these are unverified, not violated. Any discretionary question the budget could not hold. Or "None".]
+[Everything this run noticed and did not act on, in one place — the section formerly called `Outstanding Decisions`, widened. Any item withheld by an unresolved constitution conflict, with the rule it conflicts with and the recommendation to resolve it and re-run. Any remaining `NEEDS CLARIFICATION` markers. Sections created because the artifact lacked them, and any section appended at the end of a file because no template position could be mapped. Tasks written without a path because none resolved. Struck-through text left as it stands because it had neither a Bugfix marker nor a replacement, and any overlap with a task reopened by a bugfix cycle. Any retired entry the gap report appeared to reach, any superseded entry whose replacement could not be resolved, and any overlap with a cancelled task. Any revision notes found in another place or form, with the split named. Each action-requiring constitution rule reported as unverified, with what would settle it — these are unverified, not violated. Any discretionary question the budget could not hold. Or "None".]
 
 ## Defaults Applied
 [Any decision made with a reasonable default instead of asking, or "None"]
@@ -453,10 +482,10 @@ Output the final report. Use **absolute paths** for all file references.
 
 ## Next Step
 [Recommend based on what changed:]
-- If remediation tasks were added → `/speckit.implement` to execute them
-- If plan was significantly updated → `/speckit.plan` to review architecture
+- If remediation tasks were added → `__SPECKIT_COMMAND_IMPLEMENT__` to execute them
+- If plan was significantly updated → `__SPECKIT_COMMAND_PLAN__` to review architecture
 - If only spec was updated → Review changes and proceed with implementation
-- **If this feature already has an entry in `.specify/memory/changelog.md`** (noted in 0.2) → `/speckit.archive.run specs/###-feature-name` to refresh project memory. The archived copy predates these edits and is now stale. Archiving is idempotent per feature, so re-running it updates the existing record rather than duplicating it.
+- **If this feature already has an entry in `.specify/memory/changelog.md`** (noted in 0.2) → `__SPECKIT_COMMAND_ARCHIVE_RUN__ specs/###-feature-name` to refresh project memory. The archived copy predates these edits and is now stale. Archiving is idempotent per feature, so re-running it updates the existing record rather than duplicating it.
 ```
 
 ---
@@ -471,9 +500,9 @@ Each criterion below applies only to artifacts in scope; an artifact a modifier 
 - All three constitution shapes checked against the rules the drift reaches, each finding carried to Step 2 or reported as unverified, and every finding's disposition recorded. No content withheld except by an unresolved conflict, and no statement written that the gap report did not supply — an obligation the run's own amendment satisfies from the report is met, not invented.
 - Edits match the Step 3 target table, and any divergence is named.
 - Every spec section the drift reaches is amended, and no section it does not reach is touched. Any section created is named in the report.
-- `tasks.md` updated with incremented `T###` IDs, exact file paths, and no `[P]` marker **on the tasks this run added**. Tasks written by `/speckit.tasks` legitimately carry `[P]`; never strip it from them.
+- `tasks.md` updated with new task IDs allocated by the convention the file already uses, exact file paths, and no `[P]` marker **on the tasks this run added**. Tasks written by `__SPECKIT_COMMAND_TASKS__` legitimately carry `[P]`; never strip it from them. No task landed under a Convergence phase.
 - Integration test task added for wiring gaps.
 - Revision note added or amended on each modified `spec.md` / `plan.md`, carrying this run's slug and its `Items:` line; for `tasks.md` the `[Sync: ...]` tag is the equivalent record. No earlier note rewritten.
-- No task marked `[X]` was edited, no task reopened by a bugfix cycle was repurposed, no struck-through wording was restored, and no task from an earlier run was deleted.
+- No task marked `[X]` was edited, no task reopened by a bugfix cycle was repurposed, no struck-through wording was restored, and no task from an earlier run was deleted. No retired or superseded entry was revived, and no cancelled task was repurposed.
 - Re-running the same gap report changes nothing further.
 - Sync Impact Report printed with absolute paths.

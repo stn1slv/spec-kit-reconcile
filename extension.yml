@@ -4,16 +4,28 @@ extension:
   name: "Reconcile Extension"
   version: "1.2.1"
   description: "Reconcile implementation drift by surgically updating the feature's own spec, plan, and tasks."
+  category: "docs"
+  effect: "read-write"
   author: "Stanislav Deviatov"
   repository: "https://github.com/stn1slv/spec-kit-reconcile"
+  homepage: "https://github.com/stn1slv/spec-kit-reconcile"
   license: "MIT"
 requires:
-  speckit_version: ">=0.1.0"
+  # The command runs check-prerequisites.sh --json --paths-only, reads
+  # .specify/feature.json, and resolves templates through the override stack
+  # that 0.16.2 introduced.
+  speckit_version: ">=0.16.2"
 provides:
   commands:
     - name: "speckit.reconcile.run"
       file: "commands/reconcile.md"
       description: "Reconcile implementation drift from a gap report"
+hooks:
+  after_implement:
+    command: "speckit.reconcile.run"
+    optional: true
+    prompt: "Reconcile any drift the implementation introduced?"
+    description: "Amend the feature's spec, plan, and tasks from a gap report"
 tags:
   - "reconcile"
   - "drift"

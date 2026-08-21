@@ -7,3 +7,4 @@
 - [ ] T003 [P] [US1] Add the download route in `src/api/attachments.py`
 - [x] T004 [US1] Add the upload progress indicator in `src/components/UploadProgress.tsx` (reopened — BUG-002)
 - [ ] T005 [US1] Add a cancel affordance to the upload progress indicator in `src/components/UploadProgress.tsx` [Sync: upload-progress]
+- [ ] T006 [US1] Add a thumbnail preview for image attachments in `src/components/UploadProgress.tsx` (CANCELLED — dropped from scope)

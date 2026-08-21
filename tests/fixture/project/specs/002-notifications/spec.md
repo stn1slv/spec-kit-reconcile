@@ -36,7 +36,7 @@ An owner with several due tasks receives one digest rather than one message per 
 
 - **REQ-001**: The system MUST send a task's owner a reminder 24 hours before its due date.
 - **REQ-002**: The system MUST send at most one digest per owner per day.
-- **REQ-003**: Owners MUST be able to turn reminders off entirely.
+- **REQ-003**: Owners MUST be able to turn reminders off entirely. **RETIRED** — a blanket opt-out was dropped after the design review.
 
 ### Things We Store
 

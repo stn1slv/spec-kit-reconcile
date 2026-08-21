@@ -5,12 +5,32 @@ All notable changes to the Reconcile extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.1] - 2026-08-14
+## [1.2.1] - 2026-08-21
 
-Everything here came from **executing** the command against the test fixture v1.2.0 shipped, in
-five runs by five fresh agents. v1.2.0 had already been through three review rounds with three
-reviewers each — 64 findings, all applied — and none of those rounds found the first three items
-below. The round is recorded in `tests/fixture/BASELINE-v1.2.0.md`.
+### Compatibility with Spec Kit 1.0.0
+
+A pass over the current Spec Kit conventions, prompted by the 1.0.0 release. The first item is a live defect rather than a modernisation: it broke the command on every agent that does not use the `/speckit.name` invocation form, which now includes the defaults for both Claude and Copilot.
+
+- **Command references are agent-neutral.** The prompt hard-coded thirteen `/speckit.…` invocations, four of them inside the ERROR strings a user is meant to retype. Agents differ: Claude and Copilot install skills and invoke `/speckit-plan`, Codex uses `$speckit-plan`, Kimi uses `/skill:speckit-plan`. Spec Kit resolves the `__SPECKIT_COMMAND_<NAME>__` token per agent, and the prompt now uses it throughout, so every reference renders in the reader's own syntax.
+- **The `py` script runtime is declared.** The frontmatter offered only `sh` and `ps`, so a project initialised with `--script py` fell back to the bash script instead of running the Python one it had installed.
+- **Templates are read through the resolver, not the directory.** A template is a stack — a project override, then each installed preset by registry priority, then the base — and reading `.specify/templates/` directly returns only the bottom of it. Step 4 creates a missing section at the position the project's template defines, so on a project with a preset layered over the spec template it was placing sections by the wrong order. It now calls `resolve-template.sh`, falls back to the direct read when that is unavailable, and says under `## Sources` which route it took.
+- **`requires.speckit_version` is honest.** It claimed `>=0.1.0` while calling scripts and reading state that arrived much later. It is now `>=0.16.2`, the release that introduced command-time template resolution.
+- **The installed copy contains only the extension.** Added `.extensionignore`. Installing used to copy the whole repository, so `tests/fixture/` — a complete fake Spec Kit project, nested `.specify/` and `specs/` included — landed inside the user's own `.specify/extensions/`, along with `.git/` on a local install.
+- **The manifest declares `category`, `effect` and `homepage`**, which until now existed only in the community catalog entry, and registers an **optional `after_implement` hook** so `/speckit.implement` offers the reconcile step when it finishes. It stays a prompt: the command needs a gap report and will not invent one. The command frontmatter also declares `handoffs` to `speckit.implement` and `speckit.plan`, matching the report's own Next Step routing.
+
+### Added
+
+- **Retirement and supersession markers are read, never reversed.** Section 1.2 covered a bugfix extension's annotations; it now covers the `RETIRED` / `SUPERSEDED by [ID]` / `CANCELLED` markers a requirement-change command leaves behind, and is renamed to **Annotations left by other commands**. A retired entry is never revived, a superseded one redirects the amendment to its replacement, and a cancelled task is neither edited nor reused — each is reported under `## Outstanding Items` instead. On a project that has never run such a command the rule applies to nothing.
+- **A Convergence phase is never a placement target.** `/speckit.converge` appends `## Phase N: Convergence` sections and treats them as an append-only record of its own findings. A remediation task written into one would be indistinguishable from a convergence finding on the next run, so 4.3 rule 2 now skips those headings and falls through to `## Remediation: Gaps`.
+- **README states the boundary** against `/speckit.converge` and `/speckit.analyze`, which take opposite views of which side of the gap is wrong.
+
+### Changed
+
+- **Task IDs follow the file's own allocation convention.** "Highest `T###` plus one" assumed a dense sequence. Where a project allocates in blocks per phase, that rule puts a new task inside a later phase's block; the rule now reads the convention and takes the next free slot in the right block. ID width is read from the file rather than assumed to be three digits, and every existing ID counts toward the maximum — including completed, reopened and cancelled ones, since a retired ID is never handed out again.
+- The test fixture's `.specify/extensions.yml` now matches what Spec Kit actually writes, and names the `bugfix` extension by its real id and hook.
+- Three fixture traps cover the rules above, registered before the round that grades them: a `## Phase 3: Convergence` section in 001 whose ID counts but whose heading is not a placement target (R20), a `RETIRED` `REQ-003` in 002 that is the closest match to Case H's report and must therefore not be touched (R21), and a `CANCELLED` `T006` in 003 whose ID is still retired (R22). Cases A and I now expect new tasks from `T008` and `T007` respectively.
+
+The fixes below came from **executing** the command against the test fixture v1.2.0 shipped, in five runs by five fresh agents. v1.2.0 had already been through three review rounds with three reviewers each — 64 findings, all applied — and none of those rounds found the first three items below. The round is recorded in `tests/fixture/BASELINE-v1.2.0.md`.
 
 ### Fixed
 
