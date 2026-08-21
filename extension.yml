@@ -21,10 +21,29 @@ provides:
       file: "commands/reconcile.md"
       description: "Reconcile implementation drift from a gap report"
 hooks:
+  # Prompt strings are copied verbatim into .specify/extensions.yml and are
+  # never passed through the command renderer, so a __SPECKIT_COMMAND_*__ token
+  # would reach the user unresolved and a literal `/speckit.…` would be wrong
+  # for every skills-based agent. Describe the arguments; never the invocation.
+  #
+  # `priority` is metadata for now: the command templates surface hooks in
+  # configured order and do not sort by it yet. 20 puts this after the git
+  # extension's commit prompt (10), which is the order that makes sense --
+  # commit the implementation, then reconcile what it drifted.
   after_implement:
     command: "speckit.reconcile.run"
+    priority: 20
     optional: true
     prompt: "Reconcile drift the implementation introduced? Re-run with a feature path and a description of what drifted, e.g. specs/001-feature the screen shipped but is unreachable."
+    description: "Amend the feature's spec, plan, and tasks from a gap report"
+  # Converge is this command's mirror image: it appends work the artifacts
+  # called for and the code lacks. A user who runs it and finds the code was
+  # the current side is exactly this command's audience.
+  after_converge:
+    command: "speckit.reconcile.run"
+    priority: 20
+    optional: true
+    prompt: "Was the code ahead of the artifacts rather than behind? Re-run this command with a feature path and a description of what drifted, e.g. specs/001-feature the endpoint shipped but the plan never declared it."
     description: "Amend the feature's spec, plan, and tasks from a gap report"
 tags:
   - "reconcile"

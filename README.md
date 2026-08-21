@@ -19,7 +19,7 @@ This extension acts as the "Inner Loop" of the Double-Loop Parity framework: it 
 - **Enforced Verification**: Automatically mandates integration test tasks for any discovered wiring or navigation gaps.
 - **Constitution compliance**: Checks the rules the drift actually reaches, in the three ways a MUST rule can fail. A **conflict** is a remediation item contradicting a rule; you are asked, and an unresolved one withholds *that item only* while the rest of the gap report is reconciled and the run completes. An **unmet obligation** is a rule requiring a statement the feature never makes — asked, never a reason to withhold anything, and never written for you, since a remediation task directing the author to make it is the honest remedy. An **action-requiring** rule ("all API routes MUST have automated tests") is reported as unverified and never flagged, because this command reads artifacts and cannot inspect a test run.
 - **Aware of other writers**: Works alongside the other commands that patch the same three files. Struck-through wording superseded by a bugfix patch is never restored, `**Bugfix**:` lines are left as metadata, and a task reopened by a bug is treated as incomplete but never repurposed. Entries a revision marked `RETIRED`, `SUPERSEDED by [ID]` or `CANCELLED` are read the same way: the marker records a decision somebody already made, so the amendment lands on the live entry and the marked one is reported instead of revived.
-- **Actionable Reporting**: Absolute paths throughout, a per-finding constitution disposition, an explicit sources declaration, and a conditional "Next Step" that routes to `/speckit.archive.run` when the reconciled feature has already been archived.
+- **Actionable Reporting**: Absolute paths throughout, a per-finding constitution disposition, an explicit sources declaration, and a conditional "Next Step" that routes to `/speckit.archive.run` when the reconciled feature has already been archived. The [`archive` extension](https://github.com/stn1slv/spec-kit-archive) is an **optional companion**, not a requirement — it owns both that command and the `.specify/memory/changelog.md` this check reads, and a project without it simply never sees the recommendation.
 
 ## Installation
 
@@ -58,7 +58,11 @@ The feature path is required and must resolve to exactly one existing directory;
 
 Re-running the same gap report is safe: it updates what it already wrote instead of appending a second set of tasks, and it never edits a task `/speckit.implement` has already marked complete.
 
-The extension also registers an **optional** `after_implement` hook, so `/speckit.implement` offers the reconcile step when it finishes. It is a prompt, never an automatic run: the command needs a gap report and will not invent one.
+**On a brownfield feature, keep the gap report narrow.** A spec written for an existing codebase deliberately covers only the change it introduces, not a retroactive account of everything already there — so "the code does X and the spec never mentions it" is the expected state for anything outside that scope, not drift. Scope the report to the change the spec claims to cover; a broad one will back-fill out-of-scope behaviour into a spec that was meant to stay narrow.
+
+The extension registers **optional** hooks on `after_implement` and `after_converge`, so both commands offer the reconcile step when they finish. They are prompts, never automatic runs: the command needs a gap report and will not invent one.
+
+The command also declares `handoffs`, which render as follow-on buttons. Those only appear on agents that install commands as files; the roughly twenty agents using the skills layout — Claude Code and Copilot among them — build their skill frontmatter from scratch and drop the key. Nothing is lost either way: the run's own `## Next Step` section does the same routing in text, on every agent.
 
 You can optionally restrict the scope of the updates, placing the modifiers immediately after the feature path:
 - `--spec-only` — update only `spec.md`
