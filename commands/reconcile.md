@@ -57,7 +57,9 @@ The leading position is canonical and unambiguous; the trailing one is a compati
 **Validate everything else.** The first four checks are textual and run before Step 0; the fifth needs `REPO_ROOT` and so runs as soon as 0.1 has resolved it, still ahead of every write. **No file is written when any of them fails** — a rejected invocation must leave the repository exactly as it found it.
 
 1. **Empty input, or no feature at all.** If `$ARGUMENTS` is empty, **or the first token starts with `--`** (the feature path must come first, before any modifier), output `ERROR: No feature spec directory provided. Usage: __SPECKIT_COMMAND_RECONCILE_RUN__ specs/###-feature-name [--scope-modifier] [gap report]` and stop.
-2. **More than one feature.** This check comes **before** the flag check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature. The checks key on **feature-shaped tokens** — a token containing a `specs/<segment>` path segment in any form (`specs/002-x`, `specs/001`, `../specs/002-x`, `/repo/specs/002-x`, `specs/20260821-143000-x`, `specs/billing-invoices`; a glob character may stand in for any of it, as in `specs/00*`), or a bare feature number or name such as `007` or `007-invoice-settings`. **Any `specs/` path counts, whatever the segment looks like** — that is what keeps the guard working for timestamp and unprefixed features, which the `###` form would miss entirely. A `specs/` path counts **anywhere** in the input. A **bare** feature reference counts only in the **leading region** — the first token, any modifiers, and the token immediately following them, which is where a second feature would be written if one were meant — and only when it carries the full `###-name` form (`002-notifications`). Two things follow, and both are deliberate: a bare **number** alone (`002`) counts only **beside a range marker whose other side is a feature reference** (the `008` in `specs/001 thru 008`), and a gap report that **opens** with a number is therefore safe (`specs/001-task-manager 404 errors now appear on the digest route`). Keying on the `###-name` form rather than on position alone is what makes that possible: the region has to include the first gap report token to catch `specs/001-task-manager 002-notifications …`, so the form is what separates a second feature from an ordinary opening word — digits inside later prose (`handle 404 errors`, `max 500 items`, `3 screens are unreachable`) are gap report, and so is ordinary punctuation (`double-checked?`, `billing/invoicing`, `*emphasis*`):
+2. **More than one feature.** This check comes **before** the flag check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature. The checks key on **feature-shaped tokens** — a token containing a `specs/<segment>` path segment in any form (`specs/002-x`, `specs/001`, `../specs/002-x`, `/repo/specs/002-x`, `specs/20260821-143000-x`, `specs/billing-invoices`; a glob character may stand in for any of it, as in `specs/00*`), or a bare feature number or name such as `007` or `007-invoice-settings`. **Any `specs/` path counts, whatever the segment looks like** — that is what keeps the guard working for timestamp and unprefixed features, which the `###` form would miss entirely.
+
+**Two limits, both deliberate.** A `specs/` segment counts only when it is the **first** segment of the token or follows a directory-traversal prefix (`specs/x`, `./specs/x`, `../specs/x`, `/abs/path/specs/x`). A `specs/` sitting deeper inside an ordinary source path — `src/specs/openapi.yaml`, `docs/specs/api.md` — is **not** feature-shaped and never triggers this check, because those are the source paths a gap report is expected to name. And the guard is shape-based, so a second feature living outside `specs/` (via `SPECIFY_FEATURE_DIRECTORY`) is **invisible to it**. That is a known limit rather than a promise: rule 1 resolves the *first* token by resolution rather than shape, while this guard can only match text, and the two are not the same test. A `specs/` path counts **anywhere** in the input. A **bare** feature reference counts only in the **leading region** — the first token, any modifiers, and the token immediately following them, which is where a second feature would be written if one were meant — and only when it carries the full `###-name` form (`002-notifications`). Two things follow, and both are deliberate: a bare **number** alone (`002`) counts only **beside a range marker whose other side is a feature reference** (the `008` in `specs/001 thru 008`), and a gap report that **opens** with a number is therefore safe (`specs/001-task-manager 404 errors now appear on the digest route`). Keying on the `###-name` form rather than on position alone is what makes that possible: the region has to include the first gap report token to catch `specs/001-task-manager 002-notifications …`, so the form is what separates a second feature from an ordinary opening word — digits inside later prose (`handle 404 errors`, `max 500 items`, `3 screens are unreachable`) are gap report, and so is ordinary punctuation (`double-checked?`, `billing/invoicing`, `*emphasis*`):
    - two or more feature-shaped tokens
    - a glob character (`*` or `?`) **inside a feature-shaped token** (`specs/00*`, `0??-export`)
    - a **word** range marker — `thru`, `through`, or `to` — appearing as a whole token between two feature references (`specs/001 thru specs/008`, `specs/001 thru 008`)
@@ -98,14 +100,14 @@ Everything you write into the feature's artifacts must come from the sources bel
 - The **gap report** itself
 - The artifacts inside `FEATURE_DIR` — `spec.md`, `plan.md` and `tasks.md` fully; `data-model.md` for 4.1's Key Entities bullet, and `contracts/` for 4.2's Integration Contracts bullet
 - `.specify/memory/constitution.md` (0.2 and Step 1) and `.specify/memory/changelog.md` (0.2 and Step 5). The constitution is core; the changelog is **not** — it is written by the companion `archive` extension, so most projects will not have one. Its absence is normal and is never an error
-- The project's **resolved templates** — read-only, and for one thing only: the section names and section **order** they define, which Step 4's missing-section rule needs. Never take content from a template. Obtain them by running the core resolver rather than by reading `.specify/templates/` directly, because a template is a **stack**, not a file: a project override, then each installed preset in registry-priority order, then any **extension** that ships that template, then the base. Reading the base file alone silently ignores every layer above it. Extension and preset layers always **replace**; only presets may compose.
+- The project's **resolved templates** — read-only, and for one thing only: the section names and section **order** they define, which Step 4's missing-section rule needs. Never take content from a template. Obtain them by running the core resolver rather than by reading `.specify/templates/` directly, because a template is a **stack**, not a file: a project override, then each installed preset in registry-priority order, then any **extension** that ships that template, then the base. Reading the base file alone silently ignores every layer above it. Override and extension layers always **replace**; only a preset may compose (`prepend`, `append`, `wrap`).
   ```
   ../../scripts/bash/resolve-template.sh spec-template --json
   ```
   Use the sibling matching this project's script variant — the runtime the `{SCRIPT}` invocation above already names. **The three filenames do not follow one pattern, so they are given rather than guessed**, and a guessed name fails silently into the fallback below:
   - bash — `../../scripts/bash/resolve-template.sh <name> --json`
   - powershell — `../../scripts/powershell/resolve-template.ps1 <name> -Json`
-  - python — `../../scripts/python/resolve_template.py <name> --json`, run through the same interpreter prefix `{SCRIPT}` uses (note the **underscore**; only the Python file spells it that way)
+  - python — `../../scripts/python/resolve_template.py <name> --json`, invoked the same way the `{SCRIPT}` line above invokes its own `.py` file (note the **underscore**; only the Python file spells it that way)
 
   The template name carries **no `.md` suffix**: `spec-template`, and `plan-template` when 4.2 creates a plan section, since Step 4's missing-section rule covers both artifacts. If the resolver is absent or fails, fall back to reading `.specify/templates/` directly and **say so under `## Sources`**, because the fallback can be wrong on a project that layers templates.
 - The output of `{SCRIPT}`
@@ -135,7 +137,7 @@ Resolve paths **in this order** — each depends on the one before it, so do not
 - **If the script is missing**, stop and inform the user. It ships with Spec-Kit, so its absence means this is not an initialised Spec-Kit project.
 - **If the script runs but exits non-zero** — commonly `Feature directory not found` on a checkout with no `.specify/feature.json` — this is **not** fatal. Its feature directory is not used anyway (see step 2). Recover `REPO_ROOT` in this order, and note which branch was taken in the Step 5 report:
 
-  1. **`SPECIFY_INIT_DIR`, if it is set in the environment.** It is the explicit project selector — the core script itself checks it before anything else — and in a monorepo it is the only thing that says which member project is meant. Skipping it lands the run on a sibling project, which is worse than failing.
+  1. **`SPECIFY_INIT_DIR`, if it is set in the environment and the directory it names contains `.specify/`.** It is the explicit project selector — the core script checks it before anything else, and rejects it outright when that `.specify/` is missing, so apply the same test rather than trusting the variable. In a monorepo it is the only thing that says which member project is meant, and skipping it lands the run on a sibling project, which is worse than failing. When it is set but fails that test, say so in the report and fall through to the walk-up.
   2. Otherwise, resolve the first token of `$ARGUMENTS` against the **current working directory** and walk up to the nearest ancestor containing `.specify/`.
 
   Stop only if neither yields a directory.
@@ -181,7 +183,7 @@ For each extracted rule, note which shape it takes, because Step 1 checks all th
 
 - it **forbids** something ("shared or unassigned active tasks are not allowed");
 - it **requires a statement** from features meeting a condition ("every feature that stores user data MUST state its retention rule"), together with any location the rule names for that statement;
-- it **requires an action** ("all API routes MUST have automated tests before merge") — something to be *done* rather than written;
+- it **requires an action** ("every dependency added MUST be approved by the security review board") — something to be *done* rather than written;
 - or **both** of the last two, which one sentence often does. Record both halves; filing it under one loses the other.
 
 ---
@@ -194,7 +196,7 @@ Classify only; Step 4 owns which artifact each category is written to.
 
 | Category | Typical Issues |
 |----------|----------------|
-| **Wiring & Navigation** | Missing routes, menu items, sidebar links; anything shipped that a user cannot reach |
+| **Wiring & Navigation** | Missing routes, menu items, sidebar links. Two clauses, both below: something shipped that a user cannot reach, **or** a routing surface that ships undeclared |
 | **Contracts** | API field mismatches, missing headers |
 | **Requirements** | Shipped code adds, drops or redefines a capability |
 | **Behavior** | Implementation behaves differently than planned |
@@ -223,6 +225,15 @@ Three worked cases, because this is where careful readers split:
 ### 1.1 Constitution Check (three shapes)
 
 A MUST rule can fail in more than one way, matching the three records from 0.2. **Check only the rules the normalized remediation items actually reach** — this is a surgical command, and a constitution rule the drift never touches is not its business. That bound is what keeps this a check rather than a project-wide audit.
+
+**What a gap report's "route" denotes, since constitution rules turn on it.** A rule about routes fires on what the report says shipped, not on what you can picture shipping. Read it this way:
+
+- A report naming a path (`/api/v1/settings`, `GET /settings`) names **that** route, and its kind is whatever the path says it is.
+- A report saying a **backend, API or endpoint** exists, without naming a path, states that an **API route shipped whose path the report does not give**. The condition of an API-route rule is met; the path is not available to write.
+- A report naming a **screen, page, link or navigation entry** states a **client** route. It is not an API route, and an API-route rule is not triggered by it alone.
+- A report describing both halves ("backend and tests exist, the screen is unreachable") states **both**: an API route whose path is unnamed, and a client route.
+
+This is a reading rule, not an inference licence. It decides which rules a report reaches; it never supplies a path, and where the path is unnamed the statement half of any rule demanding one stays unmet, because the report did not give it.
 
 1. **Conflict** — a remediation item would write content contradicting a MUST rule. Flag it CRITICAL:
    ```
@@ -343,16 +354,18 @@ Two items take **exactly one row regardless of how much they would have touched*
 ### Targets
 | # | Item (from the gap report) | Category | Artifact | Target | Action |
 |---|---------------------------|----------|----------|--------|--------|
-| 1 | Settings screen unreachable | Wiring & Navigation | `plan.md` | Routing & Navigation → *new* | Add |
-| 2 | Settings screen unreachable | Wiring & Navigation | `plan.md` | Testing Strategy → "Integration tests for the three task routes" | Amend |
-| 3 | Settings screen unreachable | Wiring & Navigation | `spec.md` | FR-014 | Amend |
-| 4 | org_id header now required | Contracts | `spec.md` | *new* | Add |
-| 5 | org_id header now required | Contracts | `plan.md` | Integration Contracts → "Settings API" | Amend |
+| 1 | Export runs but nothing links to it | Wiring & Navigation | `plan.md` | Project Structure → *new* | Add |
+| 2 | Export runs but nothing links to it | Wiring & Navigation | `plan.md` | Technical Context → "Target Platform" | Amend |
+| 3 | Export runs but nothing links to it | Wiring & Navigation | `spec.md` | FR-014 | Amend |
+| 4 | Locale header now required | Contracts | `spec.md` | Functional Requirements → *new* | Add |
+| 5 | Locale header now required | Contracts | `plan.md` | Technical Context → "Primary Dependencies" | Amend |
 ```
 
 Rows 1 and 2 are the same item in the same artifact, landing on two different entries. That is the ordinary case — a new endpoint usually touches routing, contracts and testing together — and it is why the unit is the target rather than the artifact.
 
-Row 1 is the case the rule above decides: the plan has a `Routing & Navigation` section but no entry for this route, so the row **creates** an entry and is `Add`, with the section named beside `*new*`. Row 2 is the contrast — the Testing Strategy entry already exists and its text changes, so it is `Amend`. Row 4 adds a requirement to `spec.md` where no section is named because the entry is a bare new `FR-###`.
+Row 1 is the case the rule above decides: the plan's `Project Structure` section exists but has no entry for this path, so the row **creates** an entry and is `Add`, with the section named beside `*new*`. Row 2 is the contrast: the `Target Platform` entry already exists and its text changes, so it is `Amend`. Row 4 is `Add` in a section that also already exists, which is why its target cell names that section too. **Every `Add` row names its section unless the section is itself new**; there is no bare-`*new*` form for an entry landing in a section that exists.
+
+**This example is illustrative, not a template.** Its section names come from a stock `plan-template`; a project that added `Routing & Navigation`, `Integration Contracts` or `Testing Strategy` routes the same drift into those instead, per 4.2. Never copy these rows as targets: the drift in front of you decides them.
 
 **State the counts** below the table. Every count except the first is in **rows**, so there is one unit boundary and it is stated once. This line is printed **twice per run, by design**: here as the preview, and again in Step 5 as the outcome. They are not a duplicate — a difference between them *is* the divergence Step 5 has to report, and a run whose two lines disagree without saying why has hidden the one thing the preview exists to expose:
 
@@ -380,7 +393,7 @@ Step 4 writes exactly this table. Where Step 4 discovers **at write time** that 
 
 **Idempotency is judged per artifact, not per run.** Scope modifiers mean a slug can be present in `tasks.md` while `spec.md` has never been touched under it, so check the artifact you are about to write rather than another on its behalf.
 
-When the slug is already present in the artifact you are writing, update what that earlier run wrote — the revision note's `Items:` line names exactly which entries those were — rather than appending beside it. Two limits on "update":
+When the slug is already present in the artifact you are writing, update what that earlier run wrote — the revision note's `Items:` line names exactly which entries those were — rather than appending beside it. **The `Items:` line is a record of what *was* amended, not an instruction about where to amend now.** When an entry it names has since been marked `SUPERSEDED by [ID]` or `RETIRED`, 1.2 wins: follow the marker to the live entry, amend that, and extend the `Items:` line to name it. Never strike the historical entry out of the line, and never revive it. Two limits on "update":
 
 - **Never edit a task marked `[X]` or `[x]`.** `__SPECKIT_COMMAND_IMPLEMENT__` marks completed work that way, and rewriting a finished task silently changes the record of what was done. If the refined report changes such a task, leave it and append a new one describing the remaining work — unless a later open task already carries this slug and covers that work, in which case it was appended on an earlier run and nothing more is needed. A task annotated `(reopened — BUG-NNN)` is not completed work (1.2), but it is not yours to edit either.
 - Never delete a task an earlier run created. If the refined report drops it, leave it in place and say so in the report; removing work items is the user's call.
@@ -398,16 +411,21 @@ Name every section created this way in the report — a new heading in someone's
 ```markdown
 ## Revisions
 
-### Revision: Implementation Sync [YYYY-MM-DD] [Sync: slug]
+### Revision: Implementation Sync 2026-08-14 [Sync: settings-nav-link]
 - Reason: [Summary of drift reconciled]
 - Items: [each entry this run amended or added, by the citation ladder]
+```
+
+The date and the slug above are **filled in, not copied**: write the ISO date bare, with no surrounding brackets. Only `[Sync: ...]` keeps its brackets, because they are part of the tag this command matches on. The two bracketed lines below the heading are placeholders to replace.
+
+```markdown
 ```
 
 - **The notes live under a single `## Revisions` heading at the bottom of `spec.md` and `plan.md`**, created on first use, with each run's note a `### Revision: ...` entry inside it. The heading level matters: an unhosted `###` block appended to the bottom of a file renders as a **subsection of whatever section happens to be last** — `## Assumptions` in a spec, `## Constitution Check` in a plan — which is the opposite of "at the bottom", and makes the note read as part of a section it has nothing to do with.
 - **Where an artifact already carries bare `### Revision:` entries at the bottom** with no `## Revisions` heading above them, written before this rule existed, **add the heading above them**. This is the one retroactive edit this command makes, and it is permitted because it moves no note, changes no note's text and changes no date — it only stops every future note from nesting inside the last section. Say so in the report.
 - Consecutive notes read **newest last**, so they read in run order.
 - **Never rewrite an earlier note**, with one exception: the note carrying **this run's slug**, which is amended in place rather than duplicated. Its date records the first sync for that slug and is never updated, so a re-run that changes nothing leaves no diff.
-- Where the artifact already carries revision notes in some other place or form (an older `## Revision History` section, trailing comment lines), **leave them exactly where they are**, start this block anyway, and name the split under `## Outstanding Items` so a reader knows to look in both.
+- Where the artifact already carries revision notes in some other place or form (an older `## Revision History` section, trailing comment lines), **leave them exactly where they are**, start this block anyway, and name the split under `## Outstanding Items` so a reader knows to look in both. **Bare `### Revision:` entries at the bottom are not "some other form"** — the rule directly above owns them, and adding the heading is what happens. This bullet covers everything else.
 - `tasks.md` gets no revision note: the `[Sync: ...]` tag on each task is the equivalent record.
 
 ### 4.1 Update Specification (`spec.md`)
@@ -435,10 +453,10 @@ Name every section created this way in the report — a new heading in someone's
 
 **Start from the sections a stock plan actually has.** The core `plan-template` ships `Summary`, `Technical Context`, `Constitution Check`, `Project Structure` and `Complexity Tracking` — and *not* the three names this step used to lead with. A plan that has none of those three is the ordinary case, not a deficient one, so reach for the existing sections first and create a new one only when the drift genuinely fits nowhere:
 
-- **Technical Context**: contract, dependency, header and payload drift — the stack facts the plan asserts.
-- **Project Structure**: new or moved files, modules and directories, including a route or component landing somewhere the plan does not list.
+- **Technical Context**: contract, dependency and platform drift. In the stock template this is a **fixed `**Key**: value` block** (Language/Version, Primary Dependencies, Storage, Testing, Target Platform, Project Type, Performance Goals, Constraints, Scale/Scope), so an amendment changes the value of an existing key. Do not invent a key and do not append loose prose beneath it; drift with no matching key belongs elsewhere.
+- **Project Structure**: new or moved files, modules and directories, including a route or component landing somewhere the plan does not list. This is where a path goes when no routing section exists.
 - **Summary**: a change in approach the rest of the plan now reads against.
-- **Complexity Tracking**: a deviation the implementation took that the plan would have had to justify.
+- **Complexity Tracking**: **gated** — the template says to fill it only where the Constitution Check has violations that must be justified, and it is a violation table with fixed columns. A deviation belongs here only when it is a constitution deviation and can be written as a row. An ordinary implementation choice does not qualify.
 - **Constitution Check**: only where a MUST rule requires the feature to *record* something and this is where the feature records it (see 1.1) — never to restate a verdict.
 
 **Sections many projects add**, and which take the drift naturally when present — but which are created only under the missing-section rule, never assumed:
@@ -467,7 +485,7 @@ Use the user story tag the task belongs to; omit it for tasks landing in `## Rem
 1. **Increment IDs**: Never reuse an ID and never renumber one. **Continue the allocation convention the file already uses** rather than assuming a dense sequence. Read the existing IDs and follow what you find:
    - **Dense and sequential** (`T001`, `T002`, `T003`) — the common case: start from the highest `T###` plus one.
    - **Allocated in blocks** (`T1000`, `T1010`, … then `T2000`) — a convention some projects adopt so an insertion never forces a renumber: take the next free slot **inside the block of the phase the task lands in**, not the global maximum, which would put the task inside a later phase's block. Two branches this leaves open, both decided here:
-     - **A task landing in `## Remediation: Gaps` belongs to no phase and so has no block.** Open the next unused block above every block in use — the next round thousand after the highest ID present — and allocate inside it. Every remediation task on a block-allocated file takes this path, so it is the common case, not the edge one.
+     - **A task landing in `## Remediation: Gaps` belongs to no phase and so has no block.** Open the next unused block above every block in use, meaning the next round thousand after the highest ID present, and allocate inside it **starting at the block's own base** (`T3000`, then `T3010` at the file's existing stride). Every remediation task on a block-allocated file takes this path, so it is the common case, not the edge one.
      - **A block with no free slot** takes the next unused block, by the same rule. Never spill into the following block, which belongs to another phase.
 
    Read the ID width from the file too. `T###` is the usual form, but nothing guarantees three digits, so match on `T` followed by digits rather than on exactly three of them, and write new IDs at the width the file already uses. Every ID present counts toward "highest", including tasks that are completed, reopened, or cancelled — a retired ID is never handed out again.
@@ -505,7 +523,7 @@ Output the final report. Use **absolute paths** for all file references.
 [Confirm every change came only from the Allowed Sources. Declare the read-only repository lookup whenever it happened, naming what it resolved. Name anything you needed but could not find, and state that you did not reconstruct it or invent a path. If you consulted git to verify your own writes rather than to obtain content, say so here. When a section was created, say how the template was read — through the resolver, or by the direct-read fallback because the resolver was absent or failed.]
 
 ## Path Resolution
-[`FEATURE_DIR` and how it was resolved. Note it when `{SCRIPT}` reported a different feature directory, or when the script failed and `REPO_ROOT` was derived by walking up from the argument. Otherwise "Resolved from argument".]
+[`FEATURE_DIR` and how it was resolved. Note it when `{SCRIPT}` reported a different feature directory. When the script failed, name which 0.1 branch recovered `REPO_ROOT`: `SPECIFY_INIT_DIR`, or the walk-up from the argument — and if `SPECIFY_INIT_DIR` was set but rejected for lacking `.specify/`, say that too. Otherwise "Resolved from argument".]
 
 ## Constitution Compliance
 [Every 1.1 finding with its disposition: the user's Step 2 answer, or why it is still unresolved. Name each withheld item, the rule it conflicts with, and the recommendation to resolve it and re-run. A finding the user closed ("not actually triggered", "accepted gap") belongs here too — a closed finding that appears nowhere is indistinguishable from one that was never raised. State plainly that an accepted gap is recorded nowhere but here, so a re-run will detect and ask again. Or "None".]

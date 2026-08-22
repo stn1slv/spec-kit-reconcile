@@ -52,6 +52,22 @@ An audit of the extension against the Spec Kit 1.0.1 documentation and source. M
 - Hook `prompt` strings are copied verbatim into `.specify/extensions.yml` and never token-resolved, so they describe the arguments instead of naming an invocation that would be wrong for most agents. The `.extensionignore` comment now records that its `tests/` line is load-bearing for prompt correctness, not only install tidiness: Spec Kit rewrites relative paths naming any directory present in the installed tree, and the prompt contains `tests/…` and `src/…` example paths.
 - A brownfield note in the README: a spec written for an existing codebase covers only the change it introduces, so "the code does X and the spec never mentions it" is the expected state outside that scope, not drift.
 
+### Fixed after a second review round
+
+A second four-model pass over the branch. One reported blocker did not reproduce: a reviewer held that the resolver path in the command body is rewritten only for skills-based agents, which would have silently disabled the template fix everywhere else. Installing into a command-layout agent shows all three resolver paths rendering as `.specify/scripts/...` with no `../../` surviving, and a second reviewer verified the same from the source.
+
+- **Case A graded `FR-005` both ways.** One line said the retention-sweep item amends it; another said amending it is a miss. A run doing so both passed and failed. The sweep bullet is now the governing rule and the spec-side clause is gone.
+- **The A1 trap is decidable rather than inferred.** Both baselines recorded runners splitting on whether a report saying "backend and tests exist" states an API route, and the prescribed fix had not been made. 1.1 now says what a gap report's "route" denotes: a named path is that route, a backend or endpoint without a path is an API route whose path the report withholds, a screen or link is a client route, and a report describing both states both. It is a reading rule that decides which constitution rules a report reaches; it never supplies a path. The shape-3 example no longer mirrors the fixture's own constitution, which is what made the trap grade a guess.
+- **The worked Targets example was doing a rule's job.** It reproduced Case A's drift, quoted a target verbatim from the fixture's plan, and assumed the three plan sections 4.2 had just finished saying a stock plan lacks. It is rebuilt on stock sections, on a drift the fixture does not contain, and now carries a line saying it is illustrative rather than a template.
+- **`Add` names its section, always.** Example row 4 used a bare `*new*` and a following sentence invented a third target-cell format the action table never defined, which is the same defect class this release already fixed once.
+- **The widened feature guard has stated limits.** Keying on any `specs/<segment>` made ordinary source paths such as `src/specs/openapi.yaml` fatal. A `specs/` segment now counts only at the head of a token, and the guard's blindness to features living outside `specs/` is recorded as a known limit rather than left to contradict rule 1.
+- **`SPECIFY_INIT_DIR` is validated before use.** The core script rejects it when the directory has no `.specify/`; the fallback now applies the same test, reports a rejection, and falls through.
+- **The `Items:` line does not outrank a marker.** The fixture graded that precedence while the command never stated it, so a run following the command literally failed. It is now in Step 4 beside the `Items:` rule.
+- **Two plan sections had no stated shape.** `Technical Context` is a fixed key and value block, so an amendment changes a value rather than adding prose, and `Complexity Tracking` is gated to constitution violations in a fixed table. Both bullets now say so.
+- **The category table stated one of the two Wiring clauses.** Both baselines record runners classifying from the table rather than the prose, so the undeclared-routing case was invisible to them.
+- **Smaller corrections**: the template-stack sentence claimed extension and preset layers both always replace, when only overrides and extension layers do; bare `### Revision:` entries matched two rules at once with no stated winner; the revision-note date is shown filled in, since runners split on whether the brackets were literal; a newly opened ID block states where numbering starts inside it; the `## Path Resolution` template can report the new fallback branch; and R20's placement rule no longer fails a retention task correctly placed under its own user-story phase.
+- Fixture: `FR-003` keeps the cancel-affordance wording its revision note claims it received, and `FR-005` supersedes it with a genuine refinement rather than a copy, so the note stays true and the marker is what the trap turns on. Five more ungraded branches this release introduced are recorded under `## Registered gaps`.
+
 ### Added
 
 - **Retirement and supersession markers are read, never reversed.** Section 1.2 covered a bugfix extension's annotations; it now covers the `RETIRED` / `SUPERSEDED by [ID]` / `CANCELLED` markers a requirement-change command leaves behind, and is renamed to **Annotations left by other commands**. A retired entry is never revived, a superseded one redirects the amendment to its replacement, and a cancelled task is neither edited nor reused — each is reported under `## Outstanding Items` instead. On a project that has never run such a command the rule applies to nothing.
@@ -100,7 +116,8 @@ The fixes below came from **executing** the command against the test fixture v1.
   and the first fix asserted the opposite inference instead of removing the dependency on one — which
   turned an ambiguous expectation into a confidently wrong one that scored correct runs as failures.
 - 003's fixture spec is made self-consistent: its revision note claimed to have reconciled a cancel
-  affordance that `FR-003` never mentioned. `FR-003` now states what the note says was written.
+  affordance that `FR-003` never mentioned. `FR-003` now states what the note says was written, and
+  keeps that wording after R23 supersedes it, so the note stays true about what it amended.
 - Three traps registered for the rules above (R17 revision-note nesting, R18 the target row unit,
   R19 the reachability test), with 003's two artifacts deliberately carrying the old and new note
   forms so the retroactive-add rule is exercised on one and not the other.
