@@ -77,8 +77,8 @@ Two core commands sit near this one, and the three take different views of which
 
 | Command | Treats as true | Reads | Writes |
 |---|---|---|---|
-| `/speckit.converge` (core) | the **artifacts** | spec, plan, tasks, plus the codebase | appends unbuilt work to `tasks.md`, append-only |
-| `/speckit.analyze` (core) | neither | spec, plan, tasks | nothing; it reports inconsistency |
+| `/speckit.converge` (core) | the **artifacts** | spec, plan, tasks, the constitution, plus the codebase | appends unbuilt work to `tasks.md`, append-only |
+| `/speckit.analyze` (core) | neither | spec, plan, tasks, the constitution | nothing; it reports inconsistency |
 | `/speckit.reconcile.run` | the **shipped code**, as the gap report states it | spec, plan, tasks, the constitution | amends `spec.md` and `plan.md`, appends remediation tasks |
 
 Use `converge` when the code lags a settled specification: it finds what was never built. Use this command for the mirror case, when the code shipped and the artifacts were left behind. They are not alternatives, and a feature often needs both, in either order. This command never writes into a `## Phase N: Convergence` section, so their outputs stay separable.
