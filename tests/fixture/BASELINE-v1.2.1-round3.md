@@ -58,4 +58,4 @@ The defects that remain are concentrated where they have always been, in the jud
 - 1.1 now requires a report to state that a route is **new** before a rule bounded to new routes is reached. Case A's report says the backend "exists" rather than that it shipped with this work, so A1 is now reached through the treat-it-as-new fallback rather than directly.
 - The `SUPERSEDED by [ID]` rule now names the redirected-away-from entry unconditionally, matching `RETIRED` and `CANCELLED`.
 
-Cases **A, B, C, D, F, I, J3 and K** are therefore re-run against the amended command and the amended expectations, and that round is recorded separately. G1 through G7, H, J1, J2 and E are untouched by those three changes, and their results above stand.
+Cases **A, B, C, D, F, I, J3 and K** were therefore re-run against the amended command and the amended expectations, and that round is recorded in `BASELINE-v1.2.1-round4.md`. It found that one of those three changes had regressed Case A's A1 finding, which is fixed there. G1 through G7, H, J1, J2 and E are untouched by those three changes, and their results above stand.
