@@ -1,0 +1,24 @@
+# Files that belong in the repository but not in an installed copy.
+# `specify extension add` copies the whole tree unless it is excluded here.
+
+# The fixture is a whole fake spec-kit project, nested .specify/ and specs/
+# included. Installing it under .specify/extensions/reconcile/ puts a second
+# set of feature directories inside the user's project.
+#
+# This line is also load-bearing for the prompt itself. Spec Kit rewrites any
+# relative path in a command body that names a directory present in the
+# installed extension root (CommandRegistrar.rewrite_extension_paths), skipping
+# only commands/, specs/ and dot-dirs. commands/reconcile.md contains example
+# paths such as tests/integration/navigation.test.ts and src/router/index.ts.
+# Ship a tests/ or src/ directory in the installed tree and those examples get
+# silently rewritten to .specify/extensions/reconcile/... inside the prompt.
+tests/
+
+# Local agent and tooling configuration.
+.claude/
+.codemie/
+.gitattributes
+
+# Installing from a local path (`--dev`, or `init --extension <path>`) copies
+# the tree verbatim, repository metadata included.
+.git/

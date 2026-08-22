@@ -11,3 +11,7 @@
 - [X] T004 [US2] Add the archive route in `src/api/tasks.py`
 - [X] T005 [P] [US2] Add the nightly retention sweep in `src/jobs/retention.py`
 - [X] T006 [US2] Integration test for archive and retention in `tests/integration/archive.test.ts`
+
+## Phase 3: Convergence
+
+- [ ] T007 [US2] Add the archive-permission check in `src/api/tasks.py`

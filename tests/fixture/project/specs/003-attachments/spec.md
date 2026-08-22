@@ -30,8 +30,9 @@ An owner attaches a file to a task so the context lives with the work.
 - **FR-001**: Users MUST be able to attach files up to 25 MB to a task they own.
 - **FR-002**: ~~Attachments MUST be stored on the application server's local disk.~~ Attachments MUST be stored in the object store, addressed by content hash.
   **Bugfix**: 2026-08-10 — [BUG-001] Local disk storage lost attachments on every deploy; moved to the object store.
-- **FR-003**: The system MUST show upload progress while a file is transferring.
+- **FR-003**: The system MUST show upload progress while a file is transferring, and MUST offer a cancel affordance while it does. **SUPERSEDED by FR-005** (refined to cover the transfer outcome).
 - **FR-004**: Users MUST be able to delete an attachment from a task they own.
+- **FR-005**: While a file is transferring, the system MUST display its progress and MUST allow the user to cancel it, and MUST report the outcome once the transfer ends.
 
 ### Key Entities
 

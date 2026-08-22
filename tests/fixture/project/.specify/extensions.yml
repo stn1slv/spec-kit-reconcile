@@ -1,7 +1,15 @@
 installed:
-  - id: spec-kit-bugfix
-    version: "1.0.0"
-  - id: archive
-    version: "1.2.2"
-settings: {}
-hooks: {}
+- bugfix
+- archive
+settings:
+  auto_execute_hooks: true
+hooks:
+  after_implement:
+  - extension: bugfix
+    command: speckit.bugfix.verify
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Run bugfix consistency check after implementation?
+    description: Verify spec artifact consistency after implementation completes
+    condition: null
