@@ -16,6 +16,8 @@ It is an optional step for teams that use the flow-back [spec persistence model]
 - **Previewed targets**: Before any edit, the run prints a target table naming the existing item each amendment will land on, by ID or by quoted phrase, with the counts behind it. Without that preview the same choice made twice can come out two different ways, and a zero stays ambiguous when it needs to read as "examined and found nothing to amend" rather than "did not look".
 - **Remediation tasks**: New `T###` entries in `tasks.md`, continuing whatever numbering convention the file already uses, and never marked `[P]`. They land under the existing phase heading that covers the affected story, or under a `## Remediation: Gaps` section when no phase does.
 - **Safe to re-run**: Tasks carry a `[Sync: ...]` tag, and revision notes carry the same slug plus the list of items they touched. A refined version of the same gap report updates the earlier result instead of duplicating it, and a re-run amends the same entries instead of finding them again by prose. Idempotency is judged per artifact, so a scope-limited run is not mistaken for a completed one.
+- **Explicit approval**: Before any edit, the run lists the drift items it found and asks which ones the team approves reconciling into the artifacts: for a behaviour change, that the shipped behaviour is now intended; for missing work, that the gap should be recorded and remediation tasks added. An item you do not approve is written nowhere, and the report recommends `/speckit.converge` for it, which checks the code against the artifacts as they stand. A gap report saying "approved" does not skip the question, so every run is interactive. The approved items are recorded on an `Approved:` line in each revision note, so the decision stays on record next to the edits it allowed.
+- **Back to delivery**: The "Next Step" routes to `/speckit.converge` whenever an artifact changed, after `/speckit.implement` when remediation tasks were added, so converge checks the code against the updated artifacts.
 - **Enforced verification**: Any wiring or navigation gap the run discovers gets a mandatory integration test task.
 - **Constitution compliance**: Checks the rules the drift reaches, in the three ways a MUST rule can fail. A *conflict* is a remediation item that contradicts a rule; you are asked about it, and one left unresolved withholds that item alone while the rest of the gap report is reconciled and the run completes. An *unmet obligation* is a rule requiring a statement the feature never makes. You are asked, it never withholds anything, and the command will not write the statement for you, since a remediation task directing the author to make it is the honest remedy. An *action-requiring* rule ("all API routes MUST have automated tests") is reported as unverified rather than flagged, because this command reads artifacts and cannot inspect a test run.
 - **Aware of other writers**: Other commands patch the same three files, and this one reads what they leave behind. Wording struck through by a bugfix patch is never restored, `**Bugfix**:` lines stay as metadata, and a task reopened by a bug counts as incomplete but is never repurposed. Entries a revision marked `RETIRED`, `SUPERSEDED by [ID]` or `CANCELLED` are read the same way: the marker records a decision somebody already made, so the amendment lands on the live entry and the marked one is reported instead of revived.
@@ -26,14 +28,14 @@ It is an optional step for teams that use the flow-back [spec persistence model]
 You can install this extension via the Spec-Kit CLI:
 
 ```bash
-specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.2.1.zip
+specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.3.0.zip
 ```
-*(Note: Replace `v1.2.1` with the latest release version)*
+*(Note: Replace `v1.3.0` with the latest release version)*
 
 To upgrade an existing installation, add `--force`. Without it the CLI refuses to overwrite the installed version:
 
 ```bash
-specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.2.1.zip --force
+specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.3.0.zip --force
 ```
 
 `specify extension update` does not work for this extension, and will not in future: the community catalog is deliberately discovery-only (`install_allowed: false`), so `update` skips everything in it rather than pulling unvetted third-party code. `--from` with an explicit URL is the supported upgrade path. To find that URL without leaving the CLI:
@@ -90,9 +92,10 @@ Where a requirement is *changing* rather than drifting, meaning the product deci
 1.  **Parse the gap report** to determine what drift occurred, rejecting ranges, globs, a second feature, and unknown flags before anything is written.
 2.  **Resolve paths**: read `REPO_ROOT` from the core `check-prerequisites.sh` script, then resolve the feature under it from the path you passed. A disagreement with the script's own feature is reported.
 3.  **Normalize gaps** into categories (Wiring & Navigation, Contracts, Test Coverage, and so on) and check them against the constitution rules they reach.
-4.  **Preview**: an impact map and a target table naming the item each amendment will land on, before any edit.
-5.  **Edit** the feature's own `spec.md`, `plan.md`, and `tasks.md`, and nothing else.
-6.  **Output a Sync Impact Report** detailing the created tasks and next steps, such as routing to `/speckit.implement`.
+4.  **Ask for approval**: which drift items the team has accepted. Items left out are withheld.
+5.  **Preview**: an impact map and a target table naming the item each amendment will land on, before any edit.
+6.  **Edit** the feature's own `spec.md`, `plan.md`, and `tasks.md`, and nothing else.
+7.  **Output a Sync Impact Report** detailing the created tasks and next steps, such as routing to `/speckit.implement` and then `/speckit.converge`.
 
 ## Tests
 
