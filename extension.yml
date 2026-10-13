@@ -2,7 +2,7 @@ schema_version: "1.0"
 extension:
   id: "reconcile"
   name: "Reconcile Extension"
-  version: "1.3.0"
+  version: "1.3.1"
   description: "Reconcile implementation drift by surgically updating the feature's own spec, plan, and tasks."
   category: "docs"
   effect: "read-write"
@@ -34,16 +34,17 @@ hooks:
     command: "speckit.reconcile.run"
     priority: 20
     optional: true
-    prompt: "Reconcile drift the implementation introduced? Re-run with a feature path and a description of what drifted, e.g. specs/001-feature the screen shipped but is unreachable."
+    prompt: "Did implementation surface a discovery the team accepts, or a gap the artifacts should record? Re-run with a feature path and a description of what drifted, e.g. specs/001-feature the screen shipped but is unreachable."
     description: "Amend the feature's spec, plan, and tasks from a gap report"
-  # Converge is this command's mirror image: it appends work the artifacts
-  # called for and the code lacks. A user who runs it and finds the code was
-  # the current side is exactly this command's audience.
+  # Converge appends work the artifacts call for. When one of its findings
+  # shows a discovery the team decides to accept, the artifacts need to record
+  # that decision, which is what this command does. It never treats the code
+  # itself as the source of intent.
   after_converge:
     command: "speckit.reconcile.run"
     priority: 20
     optional: true
-    prompt: "Was the code ahead of the artifacts rather than behind? Re-run this command with a feature path and a description of what drifted, e.g. specs/001-feature the endpoint shipped but the plan never declared it."
+    prompt: "Did convergence surface a discovery the team accepts that the artifacts do not record yet? Re-run this command with a feature path and a description of what drifted, e.g. specs/001-feature the endpoint shipped but the plan never declared it."
     description: "Amend the feature's spec, plan, and tasks from a gap report"
 tags:
   - "reconcile"

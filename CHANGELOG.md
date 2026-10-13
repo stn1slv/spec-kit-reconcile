@@ -5,6 +5,20 @@ All notable changes to the Reconcile extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-10-13
+
+Follows the documentation the Spec Kit maintainers merged in github/spec-kit#4945 and #4948: extensions may reconcile during or after delivery, their edits follow the project's governance, and the implementation is evidence for the team's decision rather than a source of intent. A review of v1.3.0 against those docs found the places below where the extension did not match.
+
+- **Flow-forward is respected.** When the constitution states flow-forward, the run now writes nothing, asks no question, withholds every item and recommends a new feature directory. Before, it amended the completed artifacts and only reported the mismatch afterwards.
+- **No default model.** The command no longer calls flow-back "the default assumption" or reads a silent constitution as flow-back. Under flow-back, living spec or no stated model it reconciles normally, because running it is the team's choice to amend in place. The living-spec note that called in-place amendment "the wrong remedy" is gone: the docs now name reconciling plan and tasks through an extension as one way to maintain a living spec.
+- **Open Convergence tasks are named.** When the run amends an entry that an open `## Phase N: Convergence` task traces to, it names that task under `## Outstanding Items` and in the Next Step, so the team resolves or closes it before implement carries out work written against the old intent. The task itself is never edited.
+- **A clarification never withdraws an approval.** Approval covers each item as the same round's answers resolve it, and only the approval answer can leave an item out.
+- **`Approved:` gets a dated entry whenever a re-run writes** under its slug, including a rewrite of an entry the note already names, not only when the `Items:` line grows.
+- Smaller fixes: the Next Step branch for "everything already applied" now requires at least one approved item, so an approve-none run is not sent to implement; the Sync Impact Map labels `No change (all items withheld)` and `No change (flow-forward)` are defined in Step 3; the "listed only under `## Approval`" rule now admits the Targets table's `Withheld` row.
+- **Hook prompts no longer frame the code as the truth.** The `after_implement` and `after_converge` prompts ask whether the team accepts a discovery the artifacts do not record yet.
+- README: describes reconcile as opt-in extension reconciliation that can run during or after delivery, replaces the "Treats as true: the shipped code" table cell with the team's approved decision, and documents the flow-forward and Convergence-task behaviour.
+- Fixture: Case M covers flow-forward (M1), living spec (M2) and an open Convergence task (M3), and cases A, C, E, H and I re-run against the final command.
+
 ## [1.3.0] - 2026-10-13
 
 Aligns the command with the delivery and persistence boundary that Spec Kit's maintainers set out in [github/spec-kit#4940](https://github.com/github/spec-kit/issues/4940) and the persistence-extension assessment in [github/spec-kit#4944](https://github.com/github/spec-kit/issues/4944): reconcile records decisions the team has accepted, and any work those decisions create goes back through the normal delivery loop.

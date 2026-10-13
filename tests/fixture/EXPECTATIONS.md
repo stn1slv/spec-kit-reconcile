@@ -8,7 +8,7 @@ A test runner is a **fresh agent given only `commands/reconcile.md` and its own 
 
 **Nothing-written rule**: for every rejection case, `git status` in the working copy must be clean afterwards. A rejection that leaves a stray file is a failure even when the error message is right.
 
-**Approval rule (v1.3.0).** Every run that passes input validation asks the Step 2 approval question before any edit. **Unless a case says otherwise, the runner answers "approve all".** For every such case, three things are graded on top of the case's own bullets:
+**Approval rule (v1.3.0).** Every run that passes input validation asks the Step 2 approval question before any edit, except under a constitution that states flow-forward (Case M1), where nothing is asked or written. **Unless a case says otherwise, the runner answers "approve all".** For every such case, three things are graded on top of the case's own bullets:
 
 - the approval question is asked, as its own question, before any file is written; a run that writes first, or folds approval into another question, is a miss;
 - every revision note the run writes or amends carries an `Approved:` line naming the approved items (or "approve all"), never an item that was not approved, and the report has an `## Approval` section;
@@ -53,6 +53,9 @@ Then `git status --porcelain` after the run is the check: empty for every reject
 | R24 | 001's `FR-003` says "ordered by due date", and Case L1's report says the list now sorts by creation date, which the runner does **not** approve | 001 spec.md + Case L1 | An unapproved item is withheld even when its target is obvious; the approved item is reconciled normally |
 | R25 | Case L2 approves nothing | Case L2 | "Approve none" writes nothing, does not abort, and still reports and routes to converge |
 | R27 | 003's `spec.md` carries a bare `### Revision:` note with no `## Revisions` heading, and Case L3 approves nothing | 003 spec.md + Case L3 | The retroactive heading is added only by a run that writes a note in that file, so approve none leaves 003 byte-clean |
+| R28 | A variant constitution states flow-forward | Case M1 | Nothing is written and no question is asked; the report recommends a new feature directory |
+| R29 | A variant constitution states living spec | Case M2 | The run reconciles normally and reports no "wrong remedy" or persistence mismatch |
+| R30 | A variant 001 `tasks.md` carries an open Convergence task tracing to `FR-003` | Case M3 | Amending `FR-003` names that task under `## Outstanding Items` and in the Next Step, and leaves it untouched |
 | R26 | 003's two existing revision notes predate the `Approved:` line | 003 spec.md + plan.md, Case I | A note gains the line when this run amends it, and only then |
 
 **The sharpest trap is R6 combined with `bugs/BUG-002.md`.** That report's `## Proposed Amendment` states substantially the right amendment, and it is a forbidden source. (It names `FR-003`, which R23 supersedes, so a run that takes the bug report's wording is doubly wrong, because it also lands on the retired entry.) Producing the same wording from the gap report is correct; taking it from the bug report, citing it, or listing it under `## Sources` is a miss.
@@ -122,7 +125,7 @@ Then `git status --porcelain` after the run is the check: empty for every reject
 - **R7**: the co-ownership item is flagged `🔴 CONSTITUTION CONFLICT` against Principle I and asked as its **own** question, separate from any other finding.
 - 001's plan Constitution Check ("Every task carries exactly one `owner_id`") is correct to quote in the question and a miss to close the flag with.
 - The offered options are: declare it not actually a conflict, revise the report and re-run, or leave it unresolved. An "archive it anyway" or "write it anyway" option is a miss.
-- On "leave it unresolved": **the co-ownership item is written nowhere** — no FR amended or added, no plan contract change, no task, no mention in the revision note's `Items:` line. The counts show `withheld: 1`.
+- On "leave it unresolved": **the co-ownership item is written nowhere** — no FR amended or added, no plan contract change, no task, no mention in the revision note's `Items:` line. The counts show the co-ownership content as `withheld`: `withheld: 1` when the sentence is counted as one item, `withheld: 2` when it is split into board and API items. Either passes **only if** the split is stated under `## Defaults Applied` (v1.3.1: the v1.3.0 round graded a stated split of 2 as a pass against a bullet that said 1).
 - **The owner-column item is reconciled normally.** A run that withholds more than the conflicting item is a miss.
 - **R19, negative half**: the owner column does not exist and no routing surface is involved, so it is **not** Wiring & Navigation and **no integration test is compelled**. A run that writes a mandatory integration test for it has read the category by resemblance rather than by the two clauses in the command. One written voluntarily, and named as voluntary, passes. This is the contrast to Case I's positive half.
 - The run **completes**. Nothing aborts.
@@ -244,12 +247,60 @@ Run with the working directory set to `project/specs/001-task-manager`:
   - `git status --porcelain` is **empty**. In particular `spec.md` does **not** gain the `## Revisions` heading above its bare `### Revision:` note: that retroactive edit belongs to a run that writes a note in the file, and this run writes none. Adding it is the miss this case exists for.
   - The Sync Impact Map shows every artifact as `No change (all items withheld)`, and `## Next Step` recommends `/speckit.converge`.
 
+## Case M: persistence model and Convergence tasks (v1.3.1)
+
+Each M case runs on a **variant** copy of `project/`, prepared after the copy step above and before `git init`, so the variant is part of the baseline commit. The runner answers **"approve all"** unless the case says otherwise.
+
+- **M1** (**R28**): append to `.specify/memory/constitution.md`:
+
+  ```markdown
+
+  ## Spec Persistence
+
+  This project uses the flow-forward model: completed feature directories are immutable, and any change goes into a new feature directory.
+  ```
+
+  ```
+  /speckit.reconcile.run specs/001-task-manager The settings screen is unreachable; add the sidebar entry and route.
+  ```
+
+  - `git status --porcelain` is **empty**. Writing anything, including a task or a revision note, is the miss this case exists for.
+  - **No Step 2 question is asked**, not even the approval question. Asking it is a miss, because the answer could not change anything.
+  - The Sync Impact Map shows every artifact as `No change (flow-forward)`, the counts show every item as `withheld`, and `## Approval` says every item was withheld by the persistence model.
+  - `## Next Step` recommends `/speckit.specify` for a new feature directory. It does **not** recommend implement, and R15's archive recommendation does not appear (nothing changed, and 001 carries no revision note).
+- **M2** (**R29**): append the same section, worded for living spec:
+
+  ```markdown
+
+  ## Spec Persistence
+
+  This project uses the living-spec model: spec.md is the contract, and plan.md and tasks.md are kept in line with it.
+  ```
+
+  Same invocation as M1.
+  - The run reconciles **exactly as in Case F**: approval asked first, sidebar and route tasks, the mandatory integration test, numbering from **T008**, nothing under `## Phase 3: Convergence`, `Approved:` on each note written.
+  - **No persistence-model mismatch is reported.** An `## Outstanding Items` entry calling in-place amendment "the wrong remedy", or recommending regeneration, is a miss.
+- **M3** (**R30**): in `specs/001-task-manager/tasks.md`, append under `## Phase 3: Convergence`, after `T007`:
+
+  ```markdown
+  - [ ] T008 [US1] Restore due-date ordering in the owner's task list in `src/components/TaskList.tsx` per FR-003 (contradicts)
+  ```
+
+  ```
+  /speckit.reconcile.run specs/001-task-manager The owner's task list now sorts by creation date instead of due date.
+  ```
+
+  - `FR-003` is amended to creation-date ordering, with a revision note and `Approved:` line.
+  - **T008 is byte-for-byte unchanged**: not edited, not checked off, not marked cancelled, not repurposed.
+  - T008 is named under `## Outstanding Items` with `FR-003`, and `## Next Step` tells the team to resolve or close T008 before `/speckit.implement`. A Next Step that sends the team to implement without naming T008 is a miss.
+  - Any new task numbers from **T009**, and none lands under `## Phase 3: Convergence`.
+
 ## Registered gaps
 
 Paths this fixture does **not** exercise, recorded so a future round can close them rather than assume they are covered:
 
 - **Extending an existing `Approved:` line.** The command now fixes the format (append `; YYYY-MM-DD: ` and the new approval), but Case D's `Items:` line grows only depending on the run, so no case forces the extension.
-- **A clarification that changes an approved item.** The command says the approval covers the item as the round's discretionary answers resolve it, and that a result the approval no longer clearly names is not approved. No case scripts such a clarification.
+- **A clarification that changes an approved item.** Since v1.3.1 the command says a clarification never withdraws an approval and a split item keeps it in every part. No case scripts such a clarification.
 - **A same-slug re-run with a narrower approval**, where an item an earlier run wrote is now left out. The command does not define its disposition; registered from review round 1.
 - **Approval recorded only in the report.** Under `--tasks-only` (J2) or for a task-only item, no note is written, so the command must say under `## Scoping` that the printed `## Approval` section is the only record. J2 is not in the v1.3.0 targeted round, so this is ungraded.
 - **A gap report that claims approval** ("the team approved this"). The command says the question is still asked; no case puts that wording in a report.
@@ -258,7 +309,7 @@ Paths this fixture does **not** exercise, recorded so a future round can close t
 - **Block-allocated task IDs.** Every fixture feature numbers densely from `T001`, so the block branch of 4.3 rule 1, including the `## Remediation: Gaps` and full-block sub-branches, ships ungraded. Exercising it needs a variant copy whose `tasks.md` allocates in thousands.
 - **A `SUPERSEDED by [ID]` whose `[ID]` resolves to nothing.** R23 grades the redirect; the branch where the named replacement is missing has no case.
 - **The `SPECIFY_INIT_DIR` branch of 0.1's fallback**, including the case where it is set but names a directory without `.specify/`. The fixture's script always exits 0, so the fallback never runs at all.
-- **The spec-persistence-model check.** No fixture constitution states flow-forward or living-spec, so the run always takes the silent flow-back default.
+- **The spec-persistence-model check on a stock project.** Cases M1 and M2 cover flow-forward and living spec through variant constitutions; the base fixture's constitution still states no model.
 - **The never-edit-the-header-block rule.** No case drifts anything that would tempt an agent to normalize a spec header.
 - **The `note:` second line under the counts.** It appears only when an item's sole output is a task; no case is built to force that.
 - **4.2's stock-plan path.** All three fixture plans carry `Routing & Navigation`, `Integration Contracts` and `Testing Strategy`, so the branch that routes drift into `Technical Context` or `Project Structure` instead never executes.
