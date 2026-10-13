@@ -5,6 +5,17 @@ All notable changes to the Reconcile extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-10-13
+
+Aligns the command with the delivery and persistence boundary that Spec Kit's maintainers set out in [github/spec-kit#4940](https://github.com/github/spec-kit/issues/4940) and the persistence-extension assessment in [github/spec-kit#4944](https://github.com/github/spec-kit/issues/4944): reconcile records decisions the team has accepted, and any work those decisions create goes back through the normal delivery loop.
+
+- **Every run asks for approval.** Step 2 now always asks which normalized drift items the team has accepted as the intended behaviour. An item the answer leaves out is withheld exactly like an item with an unresolved constitution conflict: written nowhere, counted under `withheld`, and named in a new `## Approval` report section with a recommendation to run converge, since the artifacts still state the intended behaviour. "Approve none" is a valid outcome that writes nothing. A gap report claiming approval does not skip the question.
+- **Revision notes carry an `Approved:` line** quoting the answer. Like the date, it records the first approval for a slug and is extended only when a re-run extends the `Items:` line, so a re-run that changes nothing still leaves no diff. Notes written by earlier versions gain the line the first time they are amended. `tasks.md` has no note and the `[Sync: ...]` tag carries no approval, so a run whose only output is tasks (for example `--tasks-only`) records its approval only in the printed report, and says so under `## Scoping`.
+- **The Next Step routes back to converge.** After remediation tasks are implemented, or directly when an artifact changed without new tasks, the report recommends `/speckit.converge` so the code is checked against the updated artifacts. The old "review changes and proceed with implementation" branch is gone. The archive recommendation now appears only when this run changed an artifact, since a run that wrote nothing leaves the archived copy current. A `Check Convergence` handoff joins the existing two.
+- Step 2 is never skipped any more: its opening no longer says to skip the step when the report is unambiguous, because the approval question is always asked.
+- README: describes reconcile as an optional flow-back persistence step that runs after delivery, documents the approval question, and adds it to the workflow.
+- Fixture: every case now states the runner's approval answer, and a new Case L grades a partial approval.
+
 ## [1.2.1] - 2026-08-22
 
 ### Compatibility with Spec Kit 1.0.0

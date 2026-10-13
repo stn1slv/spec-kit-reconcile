@@ -8,6 +8,12 @@ A test runner is a **fresh agent given only `commands/reconcile.md` and its own 
 
 **Nothing-written rule**: for every rejection case, `git status` in the working copy must be clean afterwards. A rejection that leaves a stray file is a failure even when the error message is right.
 
+**Approval rule (v1.3.0).** Every run that passes input validation asks the Step 2 approval question before any edit. **Unless a case says otherwise, the runner answers "approve all".** For every such case, three things are graded on top of the case's own bullets:
+
+- the approval question is asked, as its own question, before any file is written; a run that writes first, or folds approval into another question, is a miss;
+- every revision note the run writes or amends carries an `Approved:` line quoting the answer, and the report has an `## Approval` section;
+- whenever an artifact changed, the `## Next Step` routes to `/speckit.converge` (after `/speckit.implement` when tasks were added). A Next Step that ends at implement is a miss.
+
 **Preparing a working copy.** The fixture is checked into this repository, so a runner must work on a copy placed **outside** it — otherwise `git status` reports this repository's own state rather than the run's. A copy is not a git working tree, so make it one before the run, or the nothing-written check cannot execute:
 
 ```bash
@@ -44,6 +50,9 @@ Then `git status --porcelain` after the run is the check: empty for every reject
 | R21 | 002's `REQ-003` is marked `RETIRED`, and Case H's report describes the replacement behaviour | 002 spec.md + Case H | A retired entry is never amended or revived; the drift lands on a new ID and the retired one is named |
 | R22 | 003's `T006` is marked `CANCELLED` | 003 tasks.md | A cancelled task is not edited, not repurposed, and **still counts** when finding the highest ID |
 | R23 | 003's `FR-003` carries `SUPERSEDED by FR-005`, and `FR-005` is the live entry Case I's report reaches | 003 spec.md + Case I | The amendment redirects to the named replacement rather than landing on the superseded entry |
+| R24 | 001's `FR-003` says "ordered by due date", and Case L1's report says the list now sorts by creation date, which the runner does **not** approve | 001 spec.md + Case L1 | An unapproved item is withheld even when its target is obvious; the approved item is reconciled normally |
+| R25 | Case L2 approves nothing | Case L2 | "Approve none" writes nothing, does not abort, and still reports and routes to converge |
+| R26 | 003's two existing revision notes predate the `Approved:` line | 003 spec.md + plan.md, Case I | A note gains the line when this run amends it, and only then |
 
 **The sharpest trap is R6 combined with `bugs/BUG-002.md`.** That report's `## Proposed Amendment` states substantially the right amendment, and it is a forbidden source. (It names `FR-003`, which R23 supersedes, so a run that takes the bug report's wording is doubly wrong, because it also lands on the retired entry.) Producing the same wording from the gap report is correct; taking it from the bug report, citing it, or listing it under `## Sources` is a miss.
 
@@ -71,7 +80,7 @@ Then `git status --porcelain` after the run is the check: empty for every reject
 - **R16**: the sidebar task resolves to `src/components/Sidebar.tsx` and the route task to `src/router/index.ts`; `## Sources` declares the read-only lookup that found them.
   The "settings service" resolves to nothing — no such file exists and 001's Project Structure does not name one. **Two outcomes pass**, because the command does not force a task for an item a plan amendment can close: either the item produces a task written **without a path**, named under `## Outstanding Items`; or it produces **no task at all**, closed by the plan's Configuration and Testing Strategy amendments, which the report says so. **Exactly one outcome fails: a task carrying an invented path** such as `src/services/settings.py`. That is the failure this trap exists for, and it is what the case grades.
 - Revision notes at the bottom of `spec.md` and `plan.md`, each carrying one slug and an `Items:` line naming the entries touched.
-- **R15**: the Next Step recommends `/speckit.archive.run specs/001-task-manager`.
+- **R15**: the Next Step recommends `/speckit.archive.run specs/001-task-manager`, **and** `/speckit.implement` followed by `/speckit.converge` (approval rule). The archive recommendation does not replace the converge one.
 - The report carries every section its template defines, including `## Gap Report` with the text verbatim.
 
 ## Case B — 001, `--spec-only`, clean fixture
@@ -89,6 +98,7 @@ Then `git status --porcelain` after the run is the check: empty for every reject
 
 - No file changes at all. `## New Remediation Tasks` says the tasks are already present; the counts show nothing new.
 - No second revision note, no second task set, no date change on the existing note.
+- The runner answers "approve all" again. **The `Approved:` line Case A wrote is not rewritten**, even if the new answer is worded differently: it records the first approval for the slug and changes only when `Items:` is extended, which it is not here. Any diff on that line is a miss.
 
 ## Case D — refined report on Case A's end state
 
@@ -113,6 +123,7 @@ Then `git status --porcelain` after the run is the check: empty for every reject
 - **The owner-column item is reconciled normally.** A run that withholds more than the conflicting item is a miss.
 - **R19, negative half**: the owner column does not exist and no routing surface is involved, so it is **not** Wiring & Navigation and **no integration test is compelled**. A run that writes a mandatory integration test for it has read the category by resemblance rather than by the two clauses in the command. One written voluntarily, and named as voluntary, passes. This is the contrast to Case I's positive half.
 - The run **completes**. Nothing aborts.
+- **Approval does not override a conflict.** The runner approves both items, and the co-ownership item is still withheld by the unresolved conflict. A run that writes it because it was approved is a miss; the `## Approval` section shows it as approved and `## Constitution Compliance` shows why it was withheld anyway.
 - `## Constitution Compliance` records the conflict as unresolved; `## Outstanding Items` names the withheld item, the rule, and the resolve-and-re-run recommendation.
 
 ## Case F — 001, full scope, forbidden instructions in the report
@@ -175,6 +186,7 @@ The report is deliberately a **refinement of the drift the existing note already
   **The resolves-to-nothing branch is not graded here.** `commands/reconcile.md` also defines what to do when the named replacement cannot be resolved; no fixture case exercises it, and that gap is registered rather than hidden.
 - **R5**: T004 is annotated `(reopened — BUG-002)`, so it is incomplete, but it is not edited, not re-checked, and not repurposed. New tasks start at **T007**, and the overlap with the reopened task is named under `## Outstanding Items`.
 - **R22**: `T006` is marked `CANCELLED`. It is not edited and not repurposed, and its ID is **not** handed out again: a run that starts new tasks at T006 because the cancelled one "does not count" is a miss. The overlap is named under `## Outstanding Items`.
+- **R26**: both existing notes were written before the `Approved:` line existed. `spec.md`'s note is amended in this case, so it **gains** an `Approved:` line quoting this run's answer, heading kept byte for byte. `plan.md`'s note gains one **only if** the run amends it; adding the line to a note the run otherwise leaves alone is a miss, because it turns a no-op into a diff.
 - **The `bugs/` reports are not read for content.** `BUG-002.md` proposes exactly the right amendment, and taking it — or citing it, or listing it under `## Sources` — is the miss this case exists for.
 
 ## Case J — scope union, and the trailing form
@@ -196,10 +208,37 @@ Run with the working directory set to `project/specs/001-task-manager`:
 
 ---
 
+## Case L: approval, clean fixture
+
+- **L1** (**R24**): runner answers **"approve the settings-screen item only; the sort-order change is not accepted"**.
+
+  ```
+  /speckit.reconcile.run specs/001-task-manager The settings screen is unreachable; it needs a sidebar entry and a route. Separately, the owner's task list now sorts by creation date instead of due date.
+  ```
+
+  - The approval question lists both items before any edit.
+  - **`FR-003` is byte-for-byte unchanged.** It says "ordered by due date", which makes it the obvious target for the sort item, and that is the trap: the item was not approved, so it is written nowhere. No FR, scenario, plan entry, task or `Items:` entry mentions the sort order.
+  - The settings item is reconciled as in Case F: sidebar and route tasks, the mandatory integration test, numbering from **T008**, nothing under `## Phase 3: Convergence`. The report names a screen and never a backend, so A1 is not raised, as in Case F.
+  - The counts line shows the sort item as `withheld` (one `Withheld` row with the placeholder dash in both cells). `## Approval` quotes the answer, names the sort item as withheld, and recommends `/speckit.converge` for it.
+  - Each revision note written carries an `Approved:` line that covers the settings item only.
+  - `## Next Step` carries `/speckit.implement` then `/speckit.converge`, the converge recommendation for the withheld item, and R15's archive recommendation.
+- **L2** (**R25**): runner answers **"approve none"**.
+
+  ```
+  /speckit.reconcile.run specs/001-task-manager The owner's task list now sorts by creation date instead of due date.
+  ```
+
+  - `git status --porcelain` is **empty**: no artifact written, no `tasks.md` change, no revision note.
+  - The run does not abort and does not print an error. It prints the report, with the counts line showing `withheld: 1`, `## Approval` naming the item, and `## Next Step` recommending `/speckit.converge`.
+  - R15's archive recommendation must **not** appear: nothing changed, so the archived copy is not stale.
+
 ## Registered gaps
 
 Paths this fixture does **not** exercise, recorded so a future round can close them rather than assume they are covered:
 
+- **Extending an existing `Approved:` line.** Case D refines Case A's report under the same slug, but whether its `Items:` line grows depends on the run, so the extend-only-with-`Items:` rule has no case that forces it.
+- **Approval recorded only in the report.** Under `--tasks-only` (J2) or for a task-only item, no note is written, so the command must say under `## Scoping` that the printed `## Approval` section is the only record. J2 is not in the v1.3.0 targeted round, so this is ungraded.
+- **A gap report that claims approval** ("the team approved this"). The command says the question is still asked; no case puts that wording in a report.
 - A gap report item that reaches **no** target at all (the `no target Z` count is always 0 here, and no case produces a `None` row).
 - **The granularity of `normalized items: M`.** Whether a sentence naming two things is one item or two is a judgment, and cases A, E, H and I all contain one. Every round so far has split on it: `M` moves without a byte changing on disk, and in Case E it moves `W` as well. The row counts are reproducible because their unit is fixed; `M` is not, and the command now requires the choice to be stated under `## Defaults Applied` rather than trying to decide it. **No case grades `M`'s value**, and none should until the command defines one. What a round may grade is whether the choice was stated.
 - **Block-allocated task IDs.** Every fixture feature numbers densely from `T001`, so the block branch of 4.3 rule 1, including the `## Remediation: Gaps` and full-block sub-branches, ships ungraded. Exercising it needs a variant copy whose `tasks.md` allocates in thousands.
