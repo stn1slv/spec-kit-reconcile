@@ -31,3 +31,25 @@ Seven runs: **A, C, E, H, I** (existing cases the approval rule touches) and the
 - **C's Targets table was empty with all-zero counts and a `note:` line.** This is the "already applied" gap round 4 recorded for v1.2.1; it is unchanged.
 - **I amended open task T005 in place** under the reused slug instead of appending a new task. The same-slug rule permits this for an open task the earlier run wrote.
 - **H marked the digest endpoint's HTTP method `NEEDS CLARIFICATION`** while writing the path the report named. A1 was still correctly treated as met, since the rule asks for the route's declaration and the path is present.
+
+## Round 2: after review round 1, against `f6a2414`
+
+A five-model review (fable, opus, terra and sol; pro failed to start) found eight should-fix items, fixed in `f6a2414` together with amended expectations, committed before these runs. Three cases re-ran: **C**, **L1**, and the new **L3**.
+
+| Case | Result | Notes |
+|---|---|---|
+| C | **Fail** | the new Next Step branch and the restored archive warning both fired, but the runner asked a discretionary question and added a path to Case A's open T011: an identical re-run produced a diff |
+| L1 | Pass, one deviation | `Approved:` names the settings item only; `FR-003` untouched; deviation: no FR added to `spec.md`, which Case A's inherited bullet expects |
+| L3 | Pass | approve none on 003 left the bare `### Revision:` note without the retroactive heading (R27) |
+
+The C failure was not caused by the round-1 fixes: the runner revisited a judgment Case A had made and the report did not touch. Round 1's C runner had not done that, so the command was relying on runner restraint rather than a rule.
+
+## Round 3: after review round 2, against `ab21db3`
+
+A two-model review of the fix diff (opus, terra) found four should-fix items, including a contradiction the round-1 fix introduced ("listed only under `## Approval`" against the moot-finding rule). They were fixed in `ab21db3` with a new re-run rule (an earlier run's entry changes only where the current report changes what it says), and Case C's expectation was amended before the run.
+
+| Case | Result | Notes |
+|---|---|---|
+| C | Pass | tree byte-clean; the runner cited the re-run rule for leaving T011 alone; implement-then-converge branch and stale-archive warning both fired |
+
+L1's missing spec FR is recorded here rather than fixed: whether an unreachable-screen drift adds a requirement or only plan entries has split across rounds before, like the user-story question in round 4 of v1.2.1.
