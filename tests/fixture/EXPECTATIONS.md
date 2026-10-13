@@ -56,6 +56,8 @@ Then `git status --porcelain` after the run is the check: empty for every reject
 | R28 | A variant constitution states flow-forward | Case M1 | Nothing is written and no question is asked; the report recommends a new feature directory |
 | R29 | A variant constitution states living spec | Case M2 | The run reconciles normally and reports no "wrong remedy" or persistence mismatch |
 | R30 | A variant 001 `tasks.md` carries an open Convergence task tracing to `FR-003` | Case M3 | Amending `FR-003` names that task under `## Outstanding Items` and in the Next Step, and leaves it untouched |
+| R31 | M3's identical report re-run on M3's end state | Case M4 | A re-run that writes nothing still names the open Convergence task |
+| R32 | A refined report on M3's end state rewrites `FR-003` | Case M5 | A rewrite of an entry the note already names extends `Approved:` with a dated entry |
 | R26 | 003's two existing revision notes predate the `Approved:` line | 003 spec.md + plan.md, Case I | A note gains the line when this run amends it, and only then |
 
 **The sharpest trap is R6 combined with `bugs/BUG-002.md`.** That report's `## Proposed Amendment` states substantially the right amendment, and it is a forbidden source. (It names `FR-003`, which R23 supersedes, so a run that takes the bug report's wording is doubly wrong, because it also lands on the retired entry.) Producing the same wording from the gap report is correct; taking it from the bug report, citing it, or listing it under `## Sources` is a miss.
@@ -268,6 +270,7 @@ Each M case runs on a **variant** copy of `project/`, prepared after the copy st
   - **No Step 2 question is asked**, not even the approval question. Asking it is a miss, because the answer could not change anything.
   - The Sync Impact Map shows every artifact as `No change (flow-forward)`, the counts show every item as `withheld`, and `## Approval` says every item was withheld by the persistence model.
   - `## Next Step` recommends `/speckit.specify` for a new feature directory. It does **not** recommend implement, and R15's archive recommendation does not appear (nothing changed, and 001 carries no revision note).
+  - **v1.3.1 review round:** `## Approval` quotes the constitution sentence that states flow-forward, and the report recommends `/speckit.converge` **nowhere**, not per item under `## Approval` and not in `## Next Step`. A converge recommendation is a miss.
 - **M2** (**R29**): append the same section, worded for living spec:
 
   ```markdown
@@ -294,6 +297,22 @@ Each M case runs on a **variant** copy of `project/`, prepared after the copy st
   - **T008 is byte-for-byte unchanged**: not edited, not checked off, not marked cancelled, not repurposed.
   - T008 is named under `## Outstanding Items` with `FR-003`, and `## Next Step` tells the team to resolve or close T008 before `/speckit.implement`. A Next Step that sends the team to implement without naming T008 is a miss.
   - Any new task numbers from **T009**, and none lands under `## Phase 3: Convergence`.
+  - **v1.3.1 review round:** the T008 bullet is the **first** bullet of `## Next Step` (flow-forward does not apply), ahead of any bullet that recommends implement or converge.
+
+M4 and M5 run on **M3's end state**, committed in the copy before the run, so `git status` shows only their own writes. The runner answers **"approve all"**.
+
+- **M4** (**R31**): the same invocation as M3, unchanged.
+  - `git status --porcelain` is **empty**: everything is already applied, and the `Approved:` line is not touched.
+  - T008 is **still named** under `## Outstanding Items` and first in `## Next Step`, although this run amended nothing: `FR-003` is on the `Items:` line of this slug's revision note. A re-run that drops the warning is the miss this case exists for.
+- **M5** (**R32**): a refined report on the same drift:
+
+  ```
+  /speckit.reconcile.run specs/001-task-manager The owner's task list now sorts by creation date, newest first, instead of due date.
+  ```
+
+  - The slug M3 minted is **reused** (identity, not spelling), and no second revision note appears.
+  - `FR-003` is rewritten to state newest-first creation-date ordering. Its revision note keeps its heading and its `Items:` line (which already names `FR-003`), and its `Approved:` line **gains** `; YYYY-MM-DD: ` followed by the approval behind this rewrite, with the earlier text kept byte for byte. Leaving `Approved:` unchanged after rewriting `FR-003` is a miss.
+  - T008 is untouched and named first in the Next Step, as in M3.
 
 ## Registered gaps
 
