@@ -4,9 +4,9 @@ A Spec-Kit extension to reconcile documentation with implementation drift.
 
 ## Overview
 
-`speckit.reconcile.run` closes the gap that opens after a feature ships. You describe what drifted in plain language; the command resolves the feature's paths, edits the sections of `spec.md` and `plan.md` the drift actually reaches, and appends remediation tasks to `tasks.md`.
+`speckit.reconcile.run` records discoveries the team has accepted in a feature's own artifacts. You describe what drifted in plain language; the command resolves the feature's paths, edits the sections of `spec.md` and `plan.md` the drift actually reaches, and appends remediation tasks to `tasks.md`.
 
-It is an optional step for teams that use the flow-back [spec persistence model](https://github.com/github/spec-kit/blob/main/docs/concepts/spec-persistence.md). It runs after delivery, when the code has settled and the team has accepted a discovery that the feature's own artifacts do not record yet.
+It is optional, opt-in reconciliation that sits outside the core workflow, as Spec Kit's [spec persistence docs](https://github.com/github/spec-kit/blob/main/docs/concepts/spec-persistence.md) describe for extensions. It can run during delivery (it is offered after `/speckit.implement`) or after it, whenever the team has accepted a discovery that the feature's own artifacts do not record yet. The code is evidence for that decision, not the source of intent: what gets written comes from the gap report and the team's approval.
 
 ## Features
 
@@ -16,7 +16,8 @@ It is an optional step for teams that use the flow-back [spec persistence model]
 - **Previewed targets**: Before any edit, the run prints a target table naming the existing item each amendment will land on, by ID or by quoted phrase, with the counts behind it. Without that preview the same choice made twice can come out two different ways, and a zero stays ambiguous when it needs to read as "examined and found nothing to amend" rather than "did not look".
 - **Remediation tasks**: New `T###` entries in `tasks.md`, continuing whatever numbering convention the file already uses, and never marked `[P]`. They land under the existing phase heading that covers the affected story, or under a `## Remediation: Gaps` section when no phase does.
 - **Safe to re-run**: Tasks carry a `[Sync: ...]` tag, and revision notes carry the same slug plus the list of items they touched. A refined version of the same gap report updates the earlier result instead of duplicating it, and a re-run amends the same entries instead of finding them again by prose. Idempotency is judged per artifact, so a scope-limited run is not mistaken for a completed one.
-- **Explicit approval**: Before any edit, the run lists the drift items it found and asks which ones the team approves reconciling into the artifacts: for a behaviour change, that the shipped behaviour is now intended; for missing work, that the gap should be recorded and remediation tasks added. An item you do not approve is written nowhere, and the report recommends `/speckit.converge` for it, which checks the code against the artifacts as they stand. A gap report saying "approved" does not skip the question, so every run is interactive. The approved items are recorded on an `Approved:` line in each revision note, so the decision stays on record next to the edits it allowed.
+- **Explicit approval**: Before any edit, the run lists the drift items it found and asks which ones the team approves reconciling into the artifacts: for a behaviour change, that the shipped behaviour is now intended; for missing work, that the gap should be recorded and remediation tasks added. An item you do not approve is written nowhere, and the report recommends `/speckit.converge` for it, which checks the code against the artifacts as they stand. A gap report saying "approved" does not skip the question, so every run is interactive, except under a flow-forward constitution, where nothing is asked or written. The approved items are recorded on an `Approved:` line in each revision note, so the decision stays on record next to the edits it allowed.
+- **Respects the persistence model**: When the constitution states that the project uses flow-forward, where completed artifacts are immutable, the run writes nothing and recommends a new feature directory instead. This holds on every run, including one during delivery, because under that model any change goes into a new feature directory. Under flow-back, living spec, or no stated model, it reconciles normally. If an open `/speckit.converge` task was written against an entry the run amends, or one an earlier run amended under the same slug, the run names that task so the team can resolve it before implementing.
 - **Back to delivery**: The "Next Step" routes to `/speckit.converge` whenever an artifact changed, after `/speckit.implement` when remediation tasks were added, so converge checks the code against the updated artifacts.
 - **Enforced verification**: Any wiring or navigation gap the run discovers gets a mandatory integration test task.
 - **Constitution compliance**: Checks the rules the drift reaches, in the three ways a MUST rule can fail. A *conflict* is a remediation item that contradicts a rule; you are asked about it, and one left unresolved withholds that item alone while the rest of the gap report is reconciled and the run completes. An *unmet obligation* is a rule requiring a statement the feature never makes. You are asked, it never withholds anything, and the command will not write the statement for you, since a remediation task directing the author to make it is the honest remedy. An *action-requiring* rule ("all API routes MUST have automated tests") is reported as unverified rather than flagged, because this command reads artifacts and cannot inspect a test run.
@@ -28,14 +29,14 @@ It is an optional step for teams that use the flow-back [spec persistence model]
 You can install this extension via the Spec-Kit CLI:
 
 ```bash
-specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.3.0.zip
+specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.3.1.zip
 ```
-*(Note: Replace `v1.3.0` with the latest release version)*
+*(Note: Replace `v1.3.1` with the latest release version)*
 
 To upgrade an existing installation, add `--force`. Without it the CLI refuses to overwrite the installed version:
 
 ```bash
-specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.3.0.zip --force
+specify extension add reconcile --from https://github.com/stn1slv/spec-kit-reconcile/archive/refs/tags/v1.3.1.zip --force
 ```
 
 `specify extension update` does not work for this extension, and will not in future: the community catalog is deliberately discovery-only (`install_allowed: false`), so `update` skips everything in it rather than pulling unvetted third-party code. `--from` with an explicit URL is the supported upgrade path. To find that URL without leaving the CLI:
@@ -75,15 +76,15 @@ Several modifiers combine as a union: `--spec-only --tasks-only` writes both and
 
 ## How this differs from `/speckit.converge` and `/speckit.analyze`
 
-Two core commands sit near this one, and the three take different views of which side of the gap is wrong.
+Two core commands sit near this one, and the three take their intent from different places.
 
-| Command | Treats as true | Reads | Writes |
+| Command | Source of intent | Reads | Writes |
 |---|---|---|---|
-| `/speckit.converge` (core) | the **artifacts** | spec, plan, tasks, the constitution, plus the codebase | appends unbuilt work to `tasks.md`, append-only |
-| `/speckit.analyze` (core) | neither | spec, plan, tasks, the constitution | nothing; it reports inconsistency |
-| `/speckit.reconcile.run` | the **shipped code**, as the gap report states it | spec, plan, tasks, the constitution | amends `spec.md` and `plan.md`, appends remediation tasks |
+| `/speckit.converge` (core) | the **artifacts** | spec, plan, tasks, the constitution, plus the codebase | appends remaining work to `tasks.md`, append-only |
+| `/speckit.analyze` (core) | the **artifacts** (it compares them) | spec, plan, tasks, the constitution | nothing; it reports inconsistency |
+| `/speckit.reconcile.run` | the **team's approved decision**, as the gap report states it | spec, plan, tasks, the constitution | amends `spec.md` and `plan.md`, appends remediation tasks |
 
-`converge` is part of the core delivery loop: it checks the code against the artifacts and appends the work that remains. This command is opt-in persistence automation for flow-back teams: it records a discovery the team has decided to accept. After reconciling, run `converge` again, so it checks the code against the updated artifacts. A converge `unrequested` or `contradicts` finding is not a reason to run this command on its own, since converge's task already allows the team to review and justify the code or remove it. It becomes one only when the team decides the code is right. This command never writes into a `## Phase N: Convergence` section, so their outputs stay separable.
+`converge` is part of the core delivery loop: it checks the code against the artifacts and appends the work that remains. This command is opt-in reconciliation provided by an extension: it records a discovery the team has decided to accept. After reconciling, run `converge` again, so it checks the code against the updated artifacts. A converge `unrequested` or `contradicts` finding is not a reason to run this command on its own, since converge's task already allows the team to review and justify the code or remove it. It becomes one only when the team decides that the behaviour the code shows should become the intended one. This command never writes into a `## Phase N: Convergence` section, so their outputs stay separable.
 
 Where a requirement is *changing* rather than drifting, meaning the product decided differently and an existing requirement is now wrong, neither command is the right one. That is a revision, and this command will not revive an entry a revision has already marked `RETIRED` or `SUPERSEDED`.
 
