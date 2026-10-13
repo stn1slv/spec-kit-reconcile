@@ -6,7 +6,7 @@ A Spec-Kit extension to reconcile documentation with implementation drift.
 
 `speckit.reconcile.run` closes the gap that opens after a feature ships. You describe what drifted in plain language; the command resolves the feature's paths, edits the sections of `spec.md` and `plan.md` the drift actually reaches, and appends remediation tasks to `tasks.md`.
 
-It is built for the PR phase, where the code has settled and the feature's own artifacts have fallen behind it.
+It is an optional step for teams that use the flow-back [spec persistence model](https://github.com/github/spec-kit/blob/main/docs/concepts/spec-persistence.md). It runs after delivery, when the code has settled and the team has accepted a discovery that the feature's own artifacts do not record yet.
 
 ## Features
 
@@ -81,7 +81,7 @@ Two core commands sit near this one, and the three take different views of which
 | `/speckit.analyze` (core) | neither | spec, plan, tasks, the constitution | nothing; it reports inconsistency |
 | `/speckit.reconcile.run` | the **shipped code**, as the gap report states it | spec, plan, tasks, the constitution | amends `spec.md` and `plan.md`, appends remediation tasks |
 
-Use `converge` when the code lags a settled specification: it finds what was never built. Use this command for the mirror case, when the code shipped and the artifacts were left behind. They are not alternatives, and a feature often needs both, in either order. This command never writes into a `## Phase N: Convergence` section, so their outputs stay separable.
+`converge` is part of the core delivery loop: it checks the code against the artifacts and appends the work that remains. This command is opt-in persistence automation for flow-back teams: it records a discovery the team has decided to accept. After reconciling, run `converge` again, so it checks the code against the updated artifacts. A converge `unrequested` or `contradicts` finding is not a reason to run this command on its own, since converge's task already allows the team to review and justify the code or remove it. It becomes one only when the team decides the code is right. This command never writes into a `## Phase N: Convergence` section, so their outputs stay separable.
 
 Where a requirement is *changing* rather than drifting, meaning the product decided differently and an existing requirement is now wrong, neither command is the right one. That is a revision, and this command will not revive an entry a revision has already marked `RETIRED` or `SUPERSEDED`.
 
