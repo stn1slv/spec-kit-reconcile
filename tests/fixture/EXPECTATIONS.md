@@ -100,6 +100,7 @@ Then `git status --porcelain` after the run is the check: empty for every reject
 - No file changes at all. `## New Remediation Tasks` says the tasks are already present; the counts show nothing new.
 - No second revision note, no second task set, no date change on the existing note.
 - The runner answers "approve all" again. **The `Approved:` line Case A wrote is not rewritten**, even if the new answer is worded differently: it records the first approval for the slug and changes only when `Items:` is extended, which it is not here. Any diff on that line is a miss.
+- **No earlier judgment is revisited (v1.3.0, review round 2).** Case A left T011 without a path. This run must not add one, ask a discretionary question about it, or reword any entry Case A wrote: the report is identical, so nothing it says has changed. The v1.3.0 round-2 re-run did exactly this and failed.
 - **Next Step (v1.3.0, review round 2).** Nothing changed and nothing was withheld, and T008 onward are still open under the slug, so the Next Step is `/speckit.implement` then `/speckit.converge`. **R15 applies again**: Case A's revision note is dated after 001's archive entry (2026-08-09), so the archived copy is stale and `/speckit.archive.run specs/001-task-manager` is recommended even though this run wrote nothing. Omitting it is a miss.
 
 ## Case D — refined report on Case A's end state
@@ -188,7 +189,7 @@ The report is deliberately a **refinement of the drift the existing note already
   **The resolves-to-nothing branch is not graded here.** `commands/reconcile.md` also defines what to do when the named replacement cannot be resolved; no fixture case exercises it, and that gap is registered rather than hidden.
 - **R5**: T004 is annotated `(reopened — BUG-002)`, so it is incomplete, but it is not edited, not re-checked, and not repurposed. New tasks start at **T007**, and the overlap with the reopened task is named under `## Outstanding Items`.
 - **R22**: `T006` is marked `CANCELLED`. It is not edited and not repurposed, and its ID is **not** handed out again: a run that starts new tasks at T006 because the cancelled one "does not count" is a miss. The overlap is named under `## Outstanding Items`.
-- **R26**: both existing notes were written before the `Approved:` line existed. `spec.md`'s note is amended in this case, so it **gains** an `Approved:` line quoting this run's answer, heading kept byte for byte. `plan.md`'s note gains one **only if** the run amends it; adding the line to a note the run otherwise leaves alone is a miss, because it turns a no-op into a diff.
+- **R26**: both existing notes were written before the `Approved:` line existed. `spec.md`'s note is amended in this case, so it **gains** an `Approved:` line that starts with this run's date (`YYYY-MM-DD: `), heading kept byte for byte. `plan.md`'s note gains one **only if** the run amends it; adding the line to a note the run otherwise leaves alone is a miss, because it turns a no-op into a diff.
 - **The `bugs/` reports are not read for content.** `BUG-002.md` proposes exactly the right amendment, and taking it — or citing it, or listing it under `## Sources` — is the miss this case exists for.
 
 ## Case J — scope union, and the trailing form
@@ -223,7 +224,7 @@ Run with the working directory set to `project/specs/001-task-manager`:
   - The settings item is reconciled as in Case F: sidebar and route tasks, the mandatory integration test, numbering from **T008**, nothing under `## Phase 3: Convergence`. The report names a screen and never a backend, so A1 is not raised, as in Case F.
   - The counts line shows the sort item as `withheld` (one `Withheld` row with the placeholder dash in both cells). `## Approval` quotes the answer, names the sort item as withheld, and recommends `/speckit.converge` for it.
   - Each revision note written carries an `Approved:` line that names the settings item only. **Quoting the scripted answer verbatim is a miss**, because the answer names the rejected sort-order change and a withheld item is written nowhere.
-  - The sort item appears under `## Approval` and nowhere else in the report: not under `## Constitution Compliance` and not under `## Outstanding Items`.
+  - The sort item is listed as withheld under `## Approval` only: not under `## Constitution Compliance` and not under `## Outstanding Items`. The Next Step naming it for converge is expected, not a repeat.
   - `## Next Step` carries `/speckit.implement` then `/speckit.converge`, the converge recommendation for the withheld item, and R15's archive recommendation.
 - **L2** (**R25**): runner answers **"approve none"**.
 
