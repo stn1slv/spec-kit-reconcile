@@ -171,7 +171,7 @@ Use absolute paths for all file operations.
 
 Read `FEATURE_SPEC`, `IMPL_PLAN`, and `TASKS_FILE` (the last one if it exists). **Read regardless of scope**: a modifier says what may be written, never what may be read.
 
-Also read `.specify/memory/changelog.md` if it exists, and note whether this feature already has an entry in the Merged Features Log. Step 5 uses this.
+Also read `.specify/memory/changelog.md` if it exists, and note whether this feature already has an entry in the Merged Features Log, and the date it was archived. Step 5 uses both.
 
 Also read `.specify/memory/constitution.md` if it exists. Extract the MUST-level constraints from its Core Principles, Architecture Standards and Quality Gates.
 
@@ -303,12 +303,14 @@ If the gap report is ambiguous (e.g., "the button doesn't work" without saying w
 
 **Both sentences above govern discretionary questions only.** The **always-ask** questions below are exempt from the materiality filter: their value is the record of the user's decision, so "the answer would not change what gets written" is never a reason to drop one.
 
-**Always ask for approval of the drift, first.** This command records decisions the team has accepted. It never decides on its own that the shipped code is right, because a drift nobody accepted means the artifacts still state the intended behaviour and the code is what should change. List every normalized item from Step 1 and ask, as one question, which of them the team has accepted as the intended behaviour. The legal answers are **approve all**, **approve some** (naming which), and **approve none**.
+**Always ask for approval of the drift, first.** This command records decisions the team has accepted. It never decides on its own that the shipped code is right, because a drift nobody accepted means the artifacts still state the intended behaviour and the code is what should change. List every normalized item from Step 1, numbered, and ask, as one question, which of them the team approves reconciling into the artifacts. Say what approving means for each kind of item: for a change in behaviour, that the shipped behaviour is now the intended one; for missing work (something unreachable, unwired or untested), that the artifacts should record the gap and remediation tasks should be added. The legal answers are **approve all**, **approve some** (naming which, by number or by name), and **approve none**. An item the answer does not clearly name is not approved; say so under `## Approval`.
 
-- An item the answer does not include is **withheld**, exactly like an item with an unresolved conflict (below): written nowhere, and named in the report with the recommendation to run `__SPECKIT_COMMAND_CONVERGE__`, which appends the work that brings the code back to the artifacts.
+**The approval question is the first question of Step 2's single round**, not a round of its own: print it first, then the constitution and discretionary questions, and wait once. Approval covers each item **as the same round's discretionary answers resolve it**. When a discretionary answer splits an item or changes what it is, so that the approval answer no longer clearly names the result, that result is not approved.
+
+- An item the answer does not include is **withheld**, exactly like an item with an unresolved conflict (below): written nowhere, and named under `## Approval` (only there, not under `## Constitution Compliance` or `## Outstanding Items`) with the recommendation to run `__SPECKIT_COMMAND_CONVERGE__`, which checks the code against the artifacts as they stand.
 - Approval never overrides a conflict: an approved item whose conflict stays unresolved is still withheld.
 - A constitution finding on an item that is not approved is moot. Record it as moot under `## Constitution Compliance`, whatever answer its own question received.
-- **Approve none** is a valid outcome, not an error: the run writes nothing and still prints the report.
+- **Approve none** is a valid outcome, not an error: the run writes nothing at all, including the retroactive `## Revisions` heading of Step 4, and still prints the report, with every artifact shown as `No change (all items withheld)` in the Sync Impact Map.
 
 **Always ask** about the CRITICAL findings from 1.1. Ask **conflicts and obligations as separate questions**, bundling all of each category into one, because the two take different answers: an obligation may be closed as an accepted gap and a conflict may not.
 
@@ -326,7 +328,7 @@ Use this format and **wait for answers**:
 **Your choice**: _[Wait for user response]_
 ```
 
-**What an unresolved conflict does.** It **withholds that item and only that item**: the conflicting remediation item is written into no artifact, generates no task, and is named in the report under `## Constitution Compliance` and `## Outstanding Items` with the recommendation to resolve it and re-run. Every other item in the gap report is reconciled normally and the run completes. **Nothing in Steps 2 to 5 aborts a run**; withholding is the only way an item is left out, and an unmet obligation never causes it. An item the approval answer leaves out is withheld the same way, with the converge recommendation in place of the resolve-and-re-run one.
+**What an unresolved conflict does.** It **withholds that item and only that item**: the conflicting remediation item is written into no artifact, generates no task, and is named in the report under `## Constitution Compliance` and `## Outstanding Items` with the recommendation to resolve it and re-run. Every other item in the gap report is reconciled normally and the run completes. **Nothing in Steps 2 to 5 aborts a run**; withholding is the only way an item is left out, and an unmet obligation never causes it. An item the approval answer leaves out is withheld the same way, but it is reported under `## Approval` alone, with the converge recommendation in place of the resolve-and-re-run one.
 
 **Rules:**
 - Max 5 questions total: the approval question, at most one conflict question and one obligation question, and the rest for discretionary ones. Bundle discretionary questions into one; if the budget is spent, report them under `## Outstanding Items` rather than dropping an always-ask question to make room.
@@ -435,17 +437,17 @@ Name every section created this way in the report — a new heading in someone's
 ### Revision: Implementation Sync 2026-08-14 [Sync: settings-nav-link]
 - Reason: [Summary of drift reconciled]
 - Items: [each entry this run amended or added, by the citation ladder]
-- Approved: [the Step 2 approval answer for these items, quoted]
+- Approved: [the approval behind these items: "approve all", or the approved items by name; never an item that was not approved]
 ```
 
 The date and the slug above are **filled in, not copied**: write the ISO date bare, with no surrounding brackets. Only `[Sync: ...]` keeps its brackets, because they are part of the tag this command matches on. The three bracketed lines below the heading are placeholders to replace.
 
-**The `Approved:` line is the record of the team's decision**, and it is what makes the note more than a log of edits. Like the date, it records the first approval for the slug: a re-run under the same slug extends it only when the same run extends the `Items:` line, so a re-run that changes nothing leaves no diff. A note written before this line existed gains it the first time this command amends that note.
+**The `Approved:` line is the record of the team's decision**, and it is what makes the note more than a log of edits. It names approved items only: a withheld item is written nowhere, and that includes this line, so under a partial approval it lists the approved items rather than quoting the answer. Like the date, it records the first approval for the slug: a re-run under the same slug extends it only when the same run extends the `Items:` line, by appending `; YYYY-MM-DD: ` and the approval behind the newly added entries, and never rewrites the text already there, so a re-run that changes nothing leaves no diff. A note written before this line existed gains it the first time this command amends that note.
 
 **That form governs a note this run writes fresh, and nothing else.** An earlier note carrying a bracketed date (`### Revision: Implementation Sync [2026-08-11] …`) keeps its heading line **byte for byte** when this run amends it, brackets included. Amending such a note means changing its `Reason:`, `Items:` and `Approved:` lines only. Normalising the date would edit a line the rule directly below forbids rewriting, and would do it for appearance rather than for content, so a re-run that changes nothing would still produce a diff.
 
 - **The notes live under a single `## Revisions` heading at the bottom of `spec.md` and `plan.md`**, created on first use, with each run's note a `### Revision: ...` entry inside it. The heading level matters: an unhosted `###` block appended to the bottom of a file renders as a **subsection of whatever section happens to be last** — `## Assumptions` in a spec, `## Constitution Check` in a plan — which is the opposite of "at the bottom", and makes the note read as part of a section it has nothing to do with.
-- **Where an artifact already carries bare `### Revision:` entries at the bottom** with no `## Revisions` heading above them, written before this rule existed, **add the heading above them**. This is the one retroactive edit this command makes, and it is permitted because it moves no note, changes no note's text and changes no date — it only stops every future note from nesting inside the last section. Say so in the report.
+- **Where an artifact already carries bare `### Revision:` entries at the bottom** with no `## Revisions` heading above them, written before this rule existed, **add the heading above them** when this run writes or amends a note in that artifact; a run that writes no note there leaves the file untouched. This is the one retroactive edit this command makes, and it is permitted because it moves no note, changes no note's text and changes no date — it only stops every future note from nesting inside the last section. Say so in the report.
 - Consecutive notes read **newest last**, so they read in run order.
 - **Never rewrite an earlier note**, with one exception: the note carrying **this run's slug**, which is amended in place rather than duplicated. Its date records the first sync for that slug and is never updated, so a re-run that changes nothing leaves no diff.
 - Where the artifact already carries revision notes in some other place or form (an older `## Revision History` section, trailing comment lines), **leave them exactly where they are**, start this block anyway, and name the split under `## Outstanding Items` so a reader knows to look in both. **Bare `### Revision:` entries at the bottom are not "some other form"**: the rule directly above owns them, and adding the heading is what happens. This bullet covers everything else.
@@ -551,7 +553,7 @@ Output the final report. Use **absolute paths** for all file references.
 [`FEATURE_DIR` and how it was resolved. Note it when `{SCRIPT}` reported a different feature directory. When the script failed, name which 0.1 branch recovered `REPO_ROOT`: `SPECIFY_INIT_DIR`, or the walk-up from the argument. If `SPECIFY_INIT_DIR` was set but rejected for lacking `.specify/`, say that too. Otherwise "Resolved from argument".]
 
 ## Approval
-[The Step 2 approval answer, quoted, then each normalized item with its disposition: approved, or withheld as not approved. For each withheld item, recommend `__SPECKIT_COMMAND_CONVERGE__`: the artifacts still state the intended behaviour, so the code is what should change.]
+[The Step 2 approval answer, quoted, then each normalized item with its disposition: approved, or withheld as not approved. For each withheld item, recommend `__SPECKIT_COMMAND_CONVERGE__`, which checks the code against the artifacts as they stand. Name any item the answer did not clearly name, and any item a discretionary answer changed so that the approval no longer named it; both count as not approved. Items withheld as not approved appear here and nowhere else in the report.]
 
 ## Constitution Compliance
 [Every 1.1 finding with its disposition: the user's Step 2 answer, or why it is still unresolved. Name each withheld item, the rule it conflicts with, and the recommendation to resolve it and re-run. A finding the user closed ("not actually triggered", "accepted gap") belongs here too — a closed finding that appears nowhere is indistinguishable from one that was never raised. State plainly that an accepted gap is recorded nowhere but here, so a re-run will detect and ask again. Or "None".]
@@ -580,9 +582,10 @@ Output the final report. Use **absolute paths** for all file references.
 [Recommend based on what changed:]
 - If remediation tasks were added → `__SPECKIT_COMMAND_IMPLEMENT__` to execute them, then `__SPECKIT_COMMAND_CONVERGE__` to check the code against the updated artifacts
 - If an artifact changed and no remediation task was added → `__SPECKIT_COMMAND_CONVERGE__` to check the code against the updated artifacts
-- If an item was withheld as not approved → `__SPECKIT_COMMAND_CONVERGE__` to append the work that brings the code back to the artifacts
+- If an item was withheld as not approved → `__SPECKIT_COMMAND_CONVERGE__` to check the code against the artifacts as they stand
+- If no artifact changed and nothing was withheld (everything was already applied) → `__SPECKIT_COMMAND_IMPLEMENT__` then `__SPECKIT_COMMAND_CONVERGE__` when open tasks carrying this run's slug remain, otherwise `__SPECKIT_COMMAND_CONVERGE__` alone
 - If plan was significantly updated → `__SPECKIT_COMMAND_PLAN__` to review architecture
-- **If this feature already has an entry in `.specify/memory/changelog.md`** (noted in 0.2) **and this run changed an artifact** → `__SPECKIT_COMMAND_ARCHIVE_RUN__ specs/###-feature-name` to refresh project memory. The archived copy predates these edits and is now stale. Archiving is idempotent per feature, so re-running it updates the existing record rather than duplicating it.
+- **If this feature already has an entry in `.specify/memory/changelog.md`** (noted in 0.2) **and the archived copy is stale**, meaning this run changed an artifact, or a revision note in `spec.md` or `plan.md` is dated after that entry's archive date → `__SPECKIT_COMMAND_ARCHIVE_RUN__ specs/###-feature-name` to refresh project memory. The archived copy predates those edits. Archiving is idempotent per feature, so re-running it updates the existing record rather than duplicating it.
 ```
 
 ---
